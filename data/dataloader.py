@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import torch
 
 def load_data(path):
     return pd.read_csv(path)
@@ -7,8 +8,14 @@ def load_data(path):
 def get_xy(data):
     try:
         #Fix
-        X = data[["time","theta1", "theta2", "xt2"]] 
-        y = data[["x_boom", "y_boom", "fc1", "fc2", "fct2"]]
+        #Time?
+        X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2", "x_boom", "y_boom"]] #States == Joint values + Control input == Torques
+        #Output => State 1 state after 
+        y = X.shift(-1) 
+        y.fillna(y.iloc[-2], inplace=True)
+        #Convert to tensors
+        X = torch.tensor(X.values, dtype=torch.float)
+        y = torch.t(torch.tensor(y.values, dtype=torch.float))
         return X, y
     except:
         raise AttributeError("Invalid data format")
@@ -18,7 +25,7 @@ def load_training_data(train_path, normalize=False):
     X, y  = get_xy(train_data)  
     
     #Add normalization
-    
+
     return X,y 
 
 def load_test_data(test_path, normalize=False):
