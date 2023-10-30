@@ -2,17 +2,25 @@ import numpy as np
 import pandas as pd
 import torch
 
+def normalize_data(data):
+    """"TODO: Normalize data with mean and std"""
+    return
+
 def load_data(path):
     return pd.read_csv(path)
 
 def get_xy(data):
     try:
-        #Fix
+        
         #Time?
         X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2", "x_boom", "y_boom"]] #States == Joint values + Control input == Torques
-        #Output => State 1 state after 
-        y = X.shift(-1) 
-        y.fillna(y.iloc[-2], inplace=True)
+        #Output => State 1 state after, add torques if need be
+        y = data[["theta1", "theta2", "xt2", "x_boom", "y_boom"]]
+        print(X.shape)
+        print(y.shape)
+        #Output is the difference of expected and current state
+        y = y - y.shift(1) 
+        y.iloc[0] = y.iloc[1]
         #Convert to tensors
         X = torch.tensor(X.values, dtype=torch.float)
         y = torch.t(torch.tensor(y.values, dtype=torch.float))
@@ -41,5 +49,7 @@ if __name__=="__main__":
 
     X_test, y_test = load_test_data(test_path, True)
 
-    print(X_train)
+    #print(X_train)
+    #print(y_train)
     print(y_train)
+    print(y_test)
