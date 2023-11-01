@@ -49,7 +49,8 @@ def get_xy(data):
 def load_training_data(train_path, normalize=True):
     train_data = load_data(train_path)
     X, y = get_xy(train_data)  
-    
+    print(X)
+    print(y)
     mean_states, std_states = calculate_mean_std(X.values)
     if normalize:
         X, y = normalize_data(X.values, y.values, mean_states, std_states)
@@ -90,8 +91,8 @@ def plot_X_train_vs_time(X_train):
         plt.show()
 
 if __name__ == "__main__":
-    train_path = "data/training1.csv"
-    test_path = "data/testing1.csv"
+    train_path = "data/training1_short.csv"
+    test_path = "data/testing1_short.csv"
     
     X_train, y_train = load_training_data(train_path, True)
 

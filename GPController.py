@@ -7,12 +7,11 @@ from training.ExactGP import ExactGPModel
 from training.BatchIndependentMultiTaskGP import BatchIndependentMultitaskGPModel
 from torch.utils.data import DataLoader, TensorDataset
 
-torch.cuda.empty_cache()
 torch.cuda.memory_summary(device=None, abbreviated=False)
 
-train_path = "data/training1.csv"
-test_path = "data/testing1.csv"
-training_iter = 20
+train_path = "data/training1_short.csv"
+test_path = "data/testing1_short.csv"
+training_iter = 100
 num_tasks = 3
 batch_size = 16  # Updated batch size
 
@@ -30,12 +29,6 @@ def main():
     # Move data tensors to the GPU
     X_train = X_train.to(device, dtype=torch.float)
     y_train = y_train.to(device, dtype=torch.float)
-    print(X_train.shape)
-    print(y_train.shape)
-    # Create a DataLoader with the specified batch size
-    dataset = TensorDataset(X_train, y_train)
-    train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
     X_test = X_test.to(device, dtype=torch.float)
 
     start_model_training = time.perf_counter()
@@ -45,7 +38,7 @@ def main():
     likelihood.train()
 
     # Adam optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
     # Loss
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
@@ -55,7 +48,7 @@ def main():
     for i in range(training_iter):
         optimizer.zero_grad()
         output = model(X_train)
-        loss = -mll(output, y_train)
+        loss = -mll(output, y_train).sum()
         loss.backward()
         print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iter, loss.item()))
         optimizer.step()
@@ -76,7 +69,7 @@ def main():
     for i, task in enumerate(tasks):
         # Make predictions for each task
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            test_x = torch.linspace(0, 1, 9959)
+            test_x = torch.linspace(0, 1, len(X_test[:,0]))
             predictions = likelihood(model(X_test))
             mean = predictions.mean
             lower, upper = predictions.confidence_region()
