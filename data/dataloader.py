@@ -1,20 +1,32 @@
 import numpy as np
 import pandas as pd
 import torch
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 def normalize_data(X1, y1, mean, std, epsilon=1e-8):
     X = np.zeros(X1.shape)
-    X[:,0:5] = np.divide(X1[:, :-3] - mean, std+epsilon)
-    X[:,5:] = X1[:, 5:]
-    y = np.divide(y1, std+epsilon)
+    #X[:,0:5] = np.divide(X1[:, :-3] - mean, std+epsilon)
+    #X[:,5:] = X1[:, 5:]
+
+    #X = np.divide(X1 -mean, std+epsilon)
+    #y = np.divide(y1, std+epsilon)
     
+    scaler = StandardScaler()
+    X[:,0:3] = scaler.fit_transform(X1[:, 0:3])
+    X[:,3:] = X1[:, 3:]
+    y = scaler.transform(y1)
+
     X = torch.tensor(X, dtype=torch.float)
     y = torch.tensor(y, dtype=torch.float)
     return X, y
 
 def calculate_mean_std(X):
-    mean = np.mean(X[:, :5], axis=0)
-    std = np.std(X[:, :5], axis=0)
+    mean = np.mean(X[:, :3], axis=0)
+    std = np.std(X[:, :3], axis=0)
+    #mean = np.mean(X)
+    #std = np.std(X)
+
     return mean, std
 
 def load_data(path):
@@ -22,11 +34,14 @@ def load_data(path):
 
 def get_xy(data):
     try:
-        X = data[["theta1", "theta2", "xt2", "x_boom", "y_boom", "fc1", "fc2", "fct2"]]
-        y = data[["theta1", "theta2", "xt2", "x_boom", "y_boom"]]
-
-        y = y - y.shift(1) 
-        y.iloc[0] = y.iloc[1]
+        X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
+        y = data[["theta1", "theta2", "xt2"]]
+        
+        y = y.shift(-1)
+        y.iloc[-1] = y.iloc[-2]
+        #y = y - y.shift(1) 
+        #y.iloc[0] = y.iloc[1]
+        
         return X, y
     except:
         raise AttributeError("Invalid data format")
@@ -56,6 +71,24 @@ def load_test_data(test_path, normalize=False):
         y = torch.tensor(y, dtype=torch.float)
     return X, y
 
+def plot_X_train_vs_time(X_train):
+    # Create a time axis based on the number of data points
+    num_data_points = X_train.shape[0]
+    time_axis = np.arange(num_data_points)
+
+    # Plot each feature in X_train against time
+    for feature_index in range(X_train.shape[1]):
+        plt.figure()
+        plt.plot(time_axis, X_train[:, feature_index].numpy())
+        plt.xlabel('Time')
+        plt.ylabel(f'Feature {feature_index + 1}')
+        plt.title(f'Feature {feature_index + 1} vs. Time')
+
+        # You can save the plot as an image if needed
+        # plt.savefig(f'feature_{feature_index + 1}_vs_time.png')
+
+        plt.show()
+
 if __name__ == "__main__":
     train_path = "data/training1.csv"
     test_path = "data/testing1.csv"
@@ -66,3 +99,9 @@ if __name__ == "__main__":
 
     print(X_train)
     print(y_train)
+    plot_X_train_vs_time(X_train)
+
+
+    
+
+
