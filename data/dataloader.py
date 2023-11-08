@@ -6,15 +6,15 @@ from sklearn.preprocessing import StandardScaler
 
 def normalize_data(X1, y1, mean, std, epsilon=1e-8):
     X = np.zeros(X1.shape)
-    #X[:,0:5] = np.divide(X1[:, :-3] - mean, std+epsilon)
-    #X[:,5:] = X1[:, 5:]
+    #X[:,0:1] = np.divide(X1[:, 1:] - mean, std+epsilon)
+    #X[:,1:] = X1[:, 1:]
 
     #X = np.divide(X1 -mean, std+epsilon)
     #y = np.divide(y1, std+epsilon)
     
     scaler = StandardScaler()
-    X[:,0:3] = scaler.fit_transform(X1[:, 0:3])
-    X[:,3:] = X1[:, 3:]
+    X[:,0:1] = scaler.fit_transform(X1[:, 0:1])
+    X[:,1:] = X1[:, 1:]
     y = scaler.transform(y1)
 
     X = torch.tensor(X, dtype=torch.float)
@@ -22,8 +22,8 @@ def normalize_data(X1, y1, mean, std, epsilon=1e-8):
     return X, y
 
 def calculate_mean_std(X):
-    mean = np.mean(X[:, :3], axis=0)
-    std = np.std(X[:, :3], axis=0)
+    mean = np.mean(X[:, :1], axis=0)
+    std = np.std(X[:, :1], axis=0)
     #mean = np.mean(X)
     #std = np.std(X)
 
@@ -34,13 +34,16 @@ def load_data(path):
 
 def get_xy(data):
     try:
-        X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
-        y = data[["theta1", "theta2", "xt2"]]
+        #X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
+        #y = data[["theta1", "theta2", "xt2"]]
+        X = data[["theta1","fc1"]]
+        y = data[["theta1"]]
         
-        y = y.shift(-1)
-        y.iloc[-1] = y.iloc[-2]
-        #y = y - y.shift(1) 
-        #y.iloc[0] = y.iloc[1]
+        #y = y.shift(-1)
+        #y.iloc[-1] = y.iloc[-2]
+        #Output 
+        y = y.shift(1) - y
+        y.iloc[0] = y.iloc[1]
         
         return X, y
     except:
@@ -91,16 +94,16 @@ def plot_X_train_vs_time(X_train):
         plt.show()
 
 if __name__ == "__main__":
-    train_path = "data/training1_short.csv"
-    test_path = "data/testing1_short.csv"
+    train_path = "data/training2_short.csv"
+    test_path = "data/testing2_short.csv"
     
     X_train, y_train = load_training_data(train_path, True)
 
     X_test, y_test = load_test_data(test_path, True)
 
-    print(X_train)
+    print(X_test)
     print(y_train)
-    plot_X_train_vs_time(X_train)
+    plot_X_train_vs_time(X_test)
 
 
     
