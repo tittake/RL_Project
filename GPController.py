@@ -81,7 +81,7 @@ def main():
             lower, upper = predictions.confidence_region()
 
         # Create a single plot for the task
-        plt.plot(test_x.cpu().numpy(), y_train[:, i].cpu().numpy(), 'k*')
+        plt.plot(test_x.cpu().numpy(), y_test[:, i].cpu().numpy(), 'k*')
         plt.plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
         # Shade in confidence
         plt.fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
