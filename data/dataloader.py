@@ -38,13 +38,13 @@ def get_xy(data):
         #y = data[["theta1", "theta2", "xt2"]]
         X = data[["theta1","fc1"]]
         y = data[["theta1"]]
-        
-        #y = y.shift(-1)
-        #y.iloc[-1] = y.iloc[-2]
-        #Output 
-        y = y.shift(1) - y
-        y.iloc[0] = y.iloc[1]
-        
+
+        y = y - y.shift(1) 
+
+        # discard first reading because no delta yet
+        X = X.iloc[1:]
+        y = y.iloc[1:]
+
         return X, y
     except:
         raise AttributeError("Invalid data format")
