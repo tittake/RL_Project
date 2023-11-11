@@ -9,23 +9,24 @@ def normalize_data(X1, y1, mean, std, epsilon=1e-8):
     #X[:,0:1] = np.divide(X1[:, 1:] - mean, std+epsilon)
     #X[:,1:] = X1[:, 1:]
 
-    #X = np.divide(X1 -mean, std+epsilon)
-    #y = np.divide(y1, std+epsilon)
+    X = np.divide(X1 -mean, std+epsilon)
+    y = np.divide(y1, std+epsilon)
     
     scaler = StandardScaler()
-    X[:,0:1] = scaler.fit_transform(X1[:, 0:1])
-    X[:,1:] = X1[:, 1:]
-    y = scaler.transform(y1)
+    #X[:,0:1] = scaler.fit_transform(X1[:, 0:1])
+    #X[:,1:] = X1[:, 1:]
+    #X = scaler.fit_transform(X1)
+    #y = scaler.transform(y1)
 
     X = torch.tensor(X, dtype=torch.float)
     y = torch.tensor(y, dtype=torch.float)
     return X, y
 
 def calculate_mean_std(X):
-    mean = np.mean(X[:, :1], axis=0)
-    std = np.std(X[:, :1], axis=0)
-    #mean = np.mean(X)
-    #std = np.std(X)
+    #mean = np.mean(X[:, :1], axis=0)
+    #std = np.std(X[:, :1], axis=0)
+    mean = np.mean(X)
+    std = np.std(X)
 
     return mean, std
 
@@ -101,7 +102,7 @@ if __name__ == "__main__":
 
     X_test, y_test = load_test_data(test_path, True)
 
-    print(X_test)
+    print(X_train)
     print(y_train)
     plot_X_train_vs_time(X_test)
 

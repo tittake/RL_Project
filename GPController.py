@@ -15,7 +15,7 @@ torch.cuda.memory_summary(device=None, abbreviated=False)
 
 train_path = "data/training2_short.csv"
 test_path = "data/testing2_short.csv"
-training_iter = 100
+training_iter = 10
 num_tasks = 1
 batch_size = 16  # Updated batch size
 
@@ -47,7 +47,7 @@ def main():
     # Loss
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
-    scaler = torch.cuda.amp.grad_scaler.GradScaler()
+    #scaler = torch.cuda.amp.grad_scaler.GradScaler()
 
     for i in range(training_iter):
         optimizer.zero_grad()
@@ -75,7 +75,7 @@ def main():
     for i, task in enumerate(tasks):
         # Make predictions for the single task
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            test_x = torch.linspace(0, 1, len(X_test[:, 0]))
+            test_x = torch.linspace(0, 10, len(X_test[:, 0]))
             predictions = likelihood(model(X_test))
             mean = predictions.mean
             lower, upper = predictions.confidence_region()
@@ -84,7 +84,7 @@ def main():
         plt.plot(test_x.cpu().numpy(), y_train[:, i].cpu().numpy(), 'k*')
         plt.plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
         # Shade in confidence
-        plt.fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
+        #plt.fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
         #plt.ylim(-3, 3)
         plt.legend(['Observed Data', 'Mean', 'Confidence'])
         plt.title(f'Observed Values (Likelihood) for Task {task}')
