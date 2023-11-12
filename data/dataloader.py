@@ -42,12 +42,12 @@ def get_xy(data):
 
         y = y - y.shift(1) 
 
-        # discard first reading because no delta yet
-        X = X.iloc[1:]
+        X = X.iloc[:-1]
+
         y = y.iloc[1:]
 
         return X, y
-    except:
+    except Exception:
         raise AttributeError("Invalid data format")
 
 def load_training_data(train_path, normalize=True):
