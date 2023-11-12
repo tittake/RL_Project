@@ -13,9 +13,9 @@ from torch.utils.data import DataLoader, TensorDataset
 
 torch.cuda.memory_summary(device=None, abbreviated=False)
 
-train_path = "data/training2_short.csv"
-test_path = "data/testing2_short.csv"
-training_iter = 10
+train_path = "data/training1_simple_10Hz.csv"
+test_path = "data/testing1_simple_10Hz.csv"
+training_iter = 100
 num_tasks = 1
 batch_size = 16  # Updated batch size
 
@@ -42,7 +42,7 @@ def main():
     likelihood.train()
 
     # Adam optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
     # Loss
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
@@ -84,7 +84,7 @@ def main():
         plt.plot(test_x.cpu().numpy(), y_test[:, i].cpu().numpy(), 'k*')
         plt.plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
         # Shade in confidence
-        #plt.fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
+        plt.fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
         #plt.ylim(-3, 3)
         plt.legend(['Observed Data', 'Mean', 'Confidence'])
         plt.title(f'Observed Values (Likelihood) for Task {task}')
