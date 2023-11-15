@@ -4,19 +4,29 @@ import torch
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
-def normalize_data(X1, y1, mean, std, epsilon=1e-8):
+scaler = StandardScaler()
+scaler_y = StandardScaler()
+
+def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     X = np.zeros(X1.shape)
     X[:,0:1] = np.divide(X1[:, 1:] - mean, std+epsilon)
     X[:,1:] = X1[:, 1:]
 
     #X = np.divide(X1 -mean, std+epsilon)
-    y = np.divide(y1, std+epsilon)
-    
-    scaler = StandardScaler()
-    #X[:,0:1] = scaler.fit_transform(X1[:, 0:1])
-    #X[:,1:] = X1[:, 1:]
-    #X = scaler.fit_transform(X1)
-    #y = scaler.transform(y1)
+    #y = np.divide(y1, std+epsilon)
+
+    if not test:
+        X[:,0:1] = scaler.fit_transform(X1[:, 0:1])
+        X[:,1:] = X1[:, 1:]
+        y = scaler_y.fit_transform(y1)
+        
+
+    else:
+        X[:,0:1] = scaler.transform(X1[:, 0:1])
+        X[:,1:] = X1[:,1:]
+        y = scaler_y.transform(y1)
+
+    #y = scaler.fit_transform(y1)
 
     X = torch.tensor(X, dtype=torch.float)
     y = torch.tensor(y, dtype=torch.float)
@@ -56,7 +66,7 @@ def load_training_data(train_path, normalize=True):
 
     mean_states, std_states = calculate_mean_std(X.values)
     if normalize:
-        X, y = normalize_data(X.values, y.values, mean_states, std_states)
+        X, y = normalize_data(X.values, y.values, mean_states, std_states, False)
     else:
         X = torch.tensor(X.values, dtype=torch.float)
         y = torch.tensor(y.values, dtype=torch.float)
@@ -69,7 +79,7 @@ def load_test_data(test_path, normalize=False):
 
     mean_states, std_states = calculate_mean_std(X.values)
     if normalize:
-        X, y = normalize_data(X.values, y.values, mean_states, std_states)
+        X, y = normalize_data(X.values, y.values, mean_states, std_states, True)
     else:
         X = torch.tensor(X.values, dtype=torch.float)
         y = torch.tensor(y.values, dtype=torch.float)

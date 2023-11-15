@@ -52,7 +52,7 @@ def main():
     for i in range(training_iter):
         optimizer.zero_grad()
         output = model(X_train)
-        loss = -mll(output, y_train).sum()
+        loss = -mll(output, y_train)#.sum()
         loss.backward()
         print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iter, loss.item()))
         optimizer.step()
@@ -72,22 +72,22 @@ def main():
     
     tasks = ["theta1"]
 
-    for i, task in enumerate(tasks):
-        # Make predictions for the single task
-        with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            test_x = torch.linspace(0, 10, len(X_test[:, 0]))
-            predictions = likelihood(model(X_test))
-            mean = predictions.mean
-            lower, upper = predictions.confidence_region()
+    
+    # Make predictions for the single task
+    with torch.no_grad(), gpytorch.settings.fast_pred_var():
+        test_x = torch.linspace(0, 10, len(X_test[:, 0]))
+        predictions = likelihood(model(X_test))
+        mean = predictions.mean
+        lower, upper = predictions.confidence_region()
 
-        # Create a single plot for the task
-        plt.plot(test_x.cpu().numpy(), y_test[:, i].cpu().numpy(), 'k*')
-        plt.plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
-        # Shade in confidence
-        plt.fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
-        #plt.ylim(-3, 3)
-        plt.legend(['Observed Data', 'Mean', 'Confidence'])
-        plt.title(f'Observed Values (Likelihood) for Task {task}')
+    # Create a single plot for the task
+    plt.plot(test_x.cpu().numpy(), y_test[:, 0].cpu().numpy(), 'k*')
+    plt.plot(test_x.cpu().numpy(), mean[:, 0].cpu().numpy(), 'b')
+    # Shade in confidence
+    plt.fill_between(test_x.cpu().numpy(), lower[:, 0].cpu().numpy(), upper[:, 0].cpu().numpy(), alpha=0.5)
+    #plt.ylim(-3, 3)
+    plt.legend(['Observed Data', 'Mean', 'Confidence'])
+    plt.title(f'Observed Values (Likelihood) for theta1')
 
     plt.show()
     #Plot multiple results
