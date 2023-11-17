@@ -21,8 +21,8 @@ class GPModel:
     def initialize_model(self, train_path, test_path, num_tasks):
         # Load data
         self.num_tasks = num_tasks
-        self.X_train, self.y_train = dataloader.load_training_data(train_path=train_path, normalize=False)
-        self.X_test, self.y_test = dataloader.load_test_data(test_path=test_path, normalize=False)
+        self.X_train, self.y_train = dataloader.load_training_data(train_path=train_path, normalize=True)
+        self.X_test, self.y_test = dataloader.load_test_data(test_path=test_path, normalize=True)
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(self.num_tasks).to(device=self.device, dtype=torch.double)
         self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks).to(self.device, torch.double)

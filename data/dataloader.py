@@ -3,30 +3,31 @@ import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 scaler = StandardScaler()
 scaler_y = StandardScaler()
+min_max_scaler = MinMaxScaler()
+min_max_y_scaler = MinMaxScaler()
 
 def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     X = np.zeros(X1.shape)
-    #X[:,0:1] = np.divide(X1[:, 1:] - mean, std+epsilon)
-    #X[:,1:] = X1[:, 1:]
-
-    #X = np.divide(X1 -mean, std+epsilon)
-    #y = np.divide(y1, std+epsilon)
+    
 
     #MinMax [-1,1] torques
     #MinMax for states
     if not test:
-        X[:,0:2] = scaler.fit_transform(X1[:, 0:2])
-        X[:,2:] = X1[:, 2:]
-        y = scaler_y.fit_transform(y1)
+        #X[:,0:2] = min_max_scaler.fit_transform(X1[:, 0:2])
+        #X[:,2:] = X1[:, 2:]
+        X = min_max_scaler.fit_transform(X1)
+        y = min_max_y_scaler.fit_transform(y1)
         
 
     else:
-        X[:,0:2] = scaler.transform(X1[:, 0:2])
-        X[:,2:] = X1[:,2:]
-        y = scaler_y.transform(y1)
+        #X[:,0:2] = min_max_scaler.transform(X1[:, 0:2])
+        #X[:,2:] = X1[:,2:]
+        X = min_max_scaler.transform(X1)
+        y = min_max_y_scaler.transform(y1)
 
     #y = scaler.fit_transform(y1)
 
@@ -112,9 +113,9 @@ if __name__ == "__main__":
     train_path = "data/training1_simple_10Hz.csv"
     test_path = "data/testing1_simple_10Hz.csv"
     
-    X_train, y_train = load_training_data(train_path, False)
+    X_train, y_train = load_training_data(train_path, True)
 
-    X_test, y_test = load_test_data(test_path, False)
+    X_test, y_test = load_test_data(test_path, True)
 
     plot_X_train_vs_time(X_train)
     plot_X_train_vs_time(X_test)
