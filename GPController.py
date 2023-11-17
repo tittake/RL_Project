@@ -33,10 +33,6 @@ class GPModel:
         self.X_test = self.X_test.to(self.device, dtype=torch.double)
         self.y_test = self.y_test.to(self.device, dtype=torch.double)
 
-
-        #self.X_train = self.X_train[0:6000:0]
-
-
     def train(self, training_iter):
 
         # Find optimal model hyperparameters
@@ -75,8 +71,6 @@ class GPModel:
 
         # Define the tasks
         #tasks = ["theta1", "theta2", "xt2"]
-        
-        tasks = ["theta1"]
         
         # Make predictions for the single task
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
