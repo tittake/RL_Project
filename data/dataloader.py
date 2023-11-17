@@ -15,21 +15,23 @@ def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     #X = np.divide(X1 -mean, std+epsilon)
     #y = np.divide(y1, std+epsilon)
 
+    #MinMax [-1,1] torques
+    #MinMax for states
     if not test:
-        X[:,0:1] = scaler.fit_transform(X1[:, 0:1])
-        X[:,1:] = X1[:, 1:]
+        X[:,0:2] = scaler.fit_transform(X1[:, 0:2])
+        X[:,2:] = X1[:, 2:]
         y = scaler_y.fit_transform(y1)
         
 
     else:
-        X[:,0:1] = scaler.transform(X1[:, 0:1])
-        X[:,1:] = X1[:,1:]
+        X[:,0:2] = scaler.transform(X1[:, 0:2])
+        X[:,2:] = X1[:,2:]
         y = scaler_y.transform(y1)
 
     #y = scaler.fit_transform(y1)
 
-    X = torch.tensor(X, dtype=torch.float)
-    y = torch.tensor(y, dtype=torch.float)
+    X = torch.tensor(X, dtype=torch.double)
+    y = torch.tensor(y, dtype=torch.double)
     return X, y
 
 def calculate_mean_std(X):
@@ -49,7 +51,7 @@ def get_xy(data):
     try:
         #X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
         #y = data[["theta1", "theta2", "xt2"]]
-        X = data[["theta1","fc1"]]
+        X = data[["theta1","theta1_dot", "fc1"]]
         y = data[["theta1"]]
 
         y = y - y.shift(1) 
@@ -71,8 +73,8 @@ def load_training_data(train_path, normalize=True):
     if normalize:
         X, y = normalize_data(X.values, y.values, mean_states, std_states, False)
     else:
-        X = torch.tensor(X.values, dtype=torch.float)
-        y = torch.tensor(y.values, dtype=torch.float)
+        X = torch.tensor(X.values, dtype=torch.double)
+        y = torch.tensor(y.values, dtype=torch.double)
 
     return X, y 
 
@@ -84,8 +86,8 @@ def load_test_data(test_path, normalize=False):
     if normalize:
         X, y = normalize_data(X.values, y.values, mean_states, std_states, True)
     else:
-        X = torch.tensor(X.values, dtype=torch.float)
-        y = torch.tensor(y.values, dtype=torch.float)
+        X = torch.tensor(X.values, dtype=torch.double)
+        y = torch.tensor(y.values, dtype=torch.double)
     return X, y
 
 def plot_X_train_vs_time(X_train):
