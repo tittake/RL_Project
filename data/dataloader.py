@@ -3,27 +3,45 @@ import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
-def normalize_data(X1, y1, mean, std, epsilon=1e-8):
+scaler = StandardScaler()
+scaler_y = StandardScaler()
+min_max_scaler = MinMaxScaler()
+min_max_y_scaler = MinMaxScaler()
+
+def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     X = np.zeros(X1.shape)
-    #X[:,0:5] = np.divide(X1[:, :-3] - mean, std+epsilon)
-    #X[:,5:] = X1[:, 5:]
-
-    #X = np.divide(X1 -mean, std+epsilon)
-    #y = np.divide(y1, std+epsilon)
     
-    scaler = StandardScaler()
-    X[:,0:3] = scaler.fit_transform(X1[:, 0:3])
-    X[:,3:] = X1[:, 3:]
-    y = scaler.transform(y1)
 
-    X = torch.tensor(X, dtype=torch.float)
-    y = torch.tensor(y, dtype=torch.float)
+    #MinMax [-1,1] torques
+    #MinMax for states
+    if not test:
+        #X[:,0:2] = min_max_scaler.fit_transform(X1[:, 0:2])
+        #X[:,2:] = X1[:, 2:]
+        X = min_max_scaler.fit_transform(X1)
+        y = min_max_y_scaler.fit_transform(y1)
+        
+
+    else:
+        #X[:,0:2] = min_max_scaler.transform(X1[:, 0:2])
+        #X[:,2:] = X1[:,2:]
+        #X = min_max_scaler.transform(X1)
+        #y = min_max_y_scaler.transform(y1)
+        X = min_max_scaler.fit_transform(X1)
+        y = min_max_y_scaler.fit_transform(y1)
+
+    #y = scaler.fit_transform(y1)
+
+    X = torch.tensor(X, dtype=torch.double)
+    y = torch.tensor(y, dtype=torch.double)
     return X, y
 
 def calculate_mean_std(X):
-    mean = np.mean(X[:, :3], axis=0)
-    std = np.std(X[:, :3], axis=0)
+    
+    mean = np.mean(X[:, :-1], axis=0)
+    std = np.std(X[:, :-1], axis=0)
+    
     #mean = np.mean(X)
     #std = np.std(X)
 
@@ -34,29 +52,32 @@ def load_data(path):
 
 def get_xy(data):
     try:
-        X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
-        y = data[["theta1", "theta2", "xt2"]]
-        
-        y = y.shift(-1)
-        y.iloc[-1] = y.iloc[-2]
-        #y = y - y.shift(1) 
-        #y.iloc[0] = y.iloc[1]
-        
+        #X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
+        #y = data[["theta1", "theta2", "xt2"]]
+        X = data[["theta1", "theta2", "xt2", "theta1_dot", "theta2_dot", "xt2_dot"]]
+        y = data[["x_boom", "y_boom"]]
+
+        y = y - y.shift(1) 
+
+        X = X.iloc[:-1]
+
+        y = y.iloc[1:]
+
         return X, y
-    except:
+    
+    except Exception:
         raise AttributeError("Invalid data format")
 
 def load_training_data(train_path, normalize=True):
     train_data = load_data(train_path)
     X, y = get_xy(train_data)  
-    print(X)
-    print(y)
+
     mean_states, std_states = calculate_mean_std(X.values)
     if normalize:
-        X, y = normalize_data(X.values, y.values, mean_states, std_states)
+        X, y = normalize_data(X.values, y.values, mean_states, std_states, False)
     else:
-        X = torch.tensor(X, dtype=torch.float)
-        y = torch.tensor(y, dtype=torch.float)
+        X = torch.tensor(X.values, dtype=torch.double)
+        y = torch.tensor(y.values, dtype=torch.double)
 
     return X, y 
 
@@ -66,10 +87,10 @@ def load_test_data(test_path, normalize=False):
 
     mean_states, std_states = calculate_mean_std(X.values)
     if normalize:
-        X, y = normalize_data(X.values, y.values, mean_states, std_states)
+        X, y = normalize_data(X.values, y.values, mean_states, std_states, True)
     else:
-        X = torch.tensor(X, dtype=torch.float)
-        y = torch.tensor(y, dtype=torch.float)
+        X = torch.tensor(X.values, dtype=torch.double)
+        y = torch.tensor(y.values, dtype=torch.double)
     return X, y
 
 def plot_X_train_vs_time(X_train):
@@ -91,16 +112,17 @@ def plot_X_train_vs_time(X_train):
         plt.show()
 
 if __name__ == "__main__":
-    train_path = "data/training1_short.csv"
-    test_path = "data/testing1_short.csv"
+    train_path = "data/training1_simple_10Hz.csv"
+    test_path = "data/testing1_simple_10Hz.csv"
     
     X_train, y_train = load_training_data(train_path, True)
 
     X_test, y_test = load_test_data(test_path, True)
 
-    print(X_train)
-    print(y_train)
     plot_X_train_vs_time(X_train)
+    plot_X_train_vs_time(X_test)
+    plot_X_train_vs_time(y_train)
+    plot_X_train_vs_time(y_test)
 
 
     
