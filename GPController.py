@@ -18,14 +18,15 @@ class GPModel:
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-    def initialize_model(self, train_path, test_path, num_tasks):
+    def initialize_model(self, train_path, test_path, num_tasks, ard_num_dims):
         # Load data
         self.num_tasks = num_tasks
+        self.ard_num_dims = ard_num_dims
         self.X_train, self.y_train = dataloader.load_training_data(train_path=train_path, normalize=True)
         self.X_test, self.y_test = dataloader.load_test_data(test_path=test_path, normalize=True)
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(self.num_tasks).to(device=self.device, dtype=torch.double)
-        self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks).to(self.device, torch.double)
+        self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.double)
 
         # Move data tensors to the GPU
         self.X_train = self.X_train.to(self.device, dtype=torch.double)
@@ -70,48 +71,48 @@ class GPModel:
         fig, axes = plt.subplots(1, self.num_tasks, figsize=(15, 5))
 
         # Define the tasks
-        #tasks = ["theta1", "theta2", "xt2"]
+        tasks = ["x_boom", "y_boom"]
         
         # Make predictions for the single task
-        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+        # with torch.no_grad(), gpytorch.settings.fast_pred_var():
             
-            print(self.X_test.shape)
-            test_x = torch.linspace(0, 10 ,len(self.X_test[:, 0]))
-            predictions = self.likelihood(self.model(self.X_test))
-            mean = predictions.mean
-            lower, upper = predictions.confidence_region()
+        #     print(self.X_test.shape)
+        #     test_x = torch.linspace(0, 10 ,len(self.X_test[:, 0]))
+        #     predictions = self.likelihood(self.model(self.X_test))
+        #     mean = predictions.mean
+        #     lower, upper = predictions.confidence_region()
 
         # Create a single plot for the task
-        plt.plot(test_x.cpu().numpy(), self.y_train[:, 0].cpu().numpy(), 'k*')
+        #plt.plot(test_x.cpu().numpy(), self.y_test[:, 0].cpu().numpy(), 'k*')
         #plt.plot(test_x.cpu().numpy(), self.X_train[:, 1].cpu().numpy(), 'r*')
-        plt.plot(test_x.cpu().numpy(), mean[:, 0].cpu().numpy(), 'b')
+        #plt.plot(test_x.cpu().numpy(), mean[:, 0].cpu().numpy(), 'b')
         # Shade in confidence
-        plt.fill_between(test_x.cpu().numpy(), lower[:, 0].cpu().numpy(), upper[:, 0].cpu().numpy(), alpha=0.5)
+        #plt.fill_between(test_x.cpu().numpy(), lower[:, 0].cpu().numpy(), upper[:, 0].cpu().numpy(), alpha=0.5)
         #plt.ylim(-3, 3)
-        plt.legend(['Observed Data', 'Mean', 'Confidence'])
-        plt.title(f'Observed Values (Likelihood) for theta1')
+        #plt.legend(['Observed Data', 'Mean', 'Confidence'])
+        #plt.title(f'Observed Values (Likelihood) for theta1')
 
-        plt.show()
+        #plt.show()
 
         #Plot multiple results
-        # for i, task in enumerate(tasks):
-        #     # Make predictions for each task
-        #     with torch.no_grad(), gpytorch.settings.fast_pred_var():
-        #         test_x = torch.linspace(0, 1, len(X_test[:,0]))
-        #         predictions = likelihood(model(X_test))
-        #         mean = predictions.mean
-        #         lower, upper = predictions.confidence_region()
+        for i, task in enumerate(tasks):
+            # Make predictions for each task
+            with torch.no_grad(), gpytorch.settings.fast_pred_var():
+                test_x = torch.linspace(0, 1, len(self.X_test[:,0]))
+                predictions = self.likelihood(self.model(self.X_test))
+                mean = predictions.mean
+                lower, upper = predictions.confidence_region()
 
-        #     # Plot training data as black stars
-        #     axes[i].plot(test_x.cpu().numpy(), y_train[:, i].cpu().numpy(), 'k*')
-        #     axes[i].plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
-        #     # Shade in confidence
-        #     axes[i].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
-        #     axes[i].set_ylim([-3, 3])
-        #     axes[i].legend(['Observed Data', 'Mean', 'Confidence'])
-        #     axes[i].set_title('Observed Values (Likelihood)')
+            # Plot training data as black stars
+            axes[i].plot(test_x.cpu().numpy(), self.y_test[:, i].cpu().numpy(), 'k*')
+            axes[i].plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
+            # Shade in confidence
+            axes[i].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
+            axes[i].set_ylim([-3, 3])
+            axes[i].legend(['Observed Data', 'Mean', 'Confidence'])
+            axes[i].set_title('Observed Values (Likelihood), ' + task)
 
-        # plt.show()
+        plt.show()
 
     def predict(self, X):
         with gpytorch.settings.fast_pred_var():  # torch.no_grad(),

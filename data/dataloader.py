@@ -26,6 +26,8 @@ def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     else:
         #X[:,0:2] = min_max_scaler.transform(X1[:, 0:2])
         #X[:,2:] = X1[:,2:]
+        #X = min_max_scaler.transform(X1)
+        #y = min_max_y_scaler.transform(y1)
         X = min_max_scaler.fit_transform(X1)
         y = min_max_y_scaler.fit_transform(y1)
 
@@ -52,8 +54,8 @@ def get_xy(data):
     try:
         #X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
         #y = data[["theta1", "theta2", "xt2"]]
-        X = data[["theta1","theta1_dot", "fc1"]]
-        y = data[["theta1"]]
+        X = data[["theta1", "theta2", "xt2", "theta1_dot", "theta2_dot", "xt2_dot"]]
+        y = data[["x_boom", "y_boom"]]
 
         y = y - y.shift(1) 
 
