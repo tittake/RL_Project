@@ -5,7 +5,7 @@ import gpytorch
 class BatchIndependentMultiTaskGPModel(gpytorch.models.ExactGP):
     def __init__(self, X_train, y_train, likelihood, num_tasks, ard_num_dims):
         super(BatchIndependentMultiTaskGPModel, self).__init__(X_train, y_train, likelihood)
-        self.mean_module = gpytorch.means.ZeroMean(
+        self.mean_module = gpytorch.means.ConstantMean(
             batch_shape=torch.Size([num_tasks])
         )
         self.cov_module = gpytorch.kernels.ScaleKernel(

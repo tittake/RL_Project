@@ -54,8 +54,8 @@ def get_xy(data):
     try:
         #X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
         #y = data[["theta1", "theta2", "xt2"]]
-        X = data[["theta1", "theta2", "xt2", "theta1_dot", "theta2_dot", "xt2_dot"]]
-        y = data[["x_boom", "y_boom"]]
+        X = data[["theta1", "theta2", "xt2"]]
+        y = data[["boom_x", "boom_y", "boom_angle"]]
 
         y = y - y.shift(1) 
 
@@ -112,8 +112,8 @@ def plot_X_train_vs_time(X_train):
         plt.show()
 
 if __name__ == "__main__":
-    train_path = "data/training1_simple_10Hz.csv"
-    test_path = "data/testing1_simple_10Hz.csv"
+    train_path = "data/some_trajectories/trajectory1_10Hz.csv"
+    test_path = "data/some_trajectories/trajectory2_10Hz.csv"
     
     X_train, y_train = load_training_data(train_path, True)
 

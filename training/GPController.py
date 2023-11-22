@@ -70,9 +70,6 @@ class GPModel:
         # Initialize plot
         fig, axes = plt.subplots(1, self.num_tasks, figsize=(15, 5))
 
-        # Define the tasks
-        tasks = ["x_boom", "y_boom"]
-        
         # Make predictions for the single task
         # with torch.no_grad(), gpytorch.settings.fast_pred_var():
             
@@ -95,6 +92,9 @@ class GPModel:
         #plt.show()
 
         #Plot multiple results
+        # Define the tasks
+        tasks = ["x_boom", "y_boom", "boom_angle"]
+
         for i, task in enumerate(tasks):
             # Make predictions for each task
             with torch.no_grad(), gpytorch.settings.fast_pred_var():
