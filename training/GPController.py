@@ -11,19 +11,24 @@ import numpy as np
 #torch.cuda.memory_summary(device=None, abbreviated=False)
 
 class GPModel:
-    def __init__(self):
+    def __init__(self, **params):
         super(GPModel, self).__init__()
+
+        for key, value in params.items():
+            setattr(self, key, value)
         
         # Check if a GPU is available
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+        self.initialize_model()
 
-    def initialize_model(self, train_path, test_path, num_tasks, ard_num_dims):
+
+    def initialize_model(self):
         # Load data
-        self.num_tasks = num_tasks
-        self.ard_num_dims = ard_num_dims
-        self.X_train, self.y_train = dataloader.load_training_data(train_path=train_path, normalize=True)
-        self.X_test, self.y_test = dataloader.load_test_data(test_path=test_path, normalize=True)
+        #self.num_tasks = num_tasks
+        #self.ard_num_dims = ard_num_dims
+        self.X_train, self.y_train = dataloader.load_training_data(train_path=self.train_path, normalize=True)
+        self.X_test, self.y_test = dataloader.load_test_data(test_path=self.test_path, normalize=True)
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(self.num_tasks).to(device=self.device, dtype=torch.double)
         self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.double)
@@ -34,7 +39,13 @@ class GPModel:
         self.X_test = self.X_test.to(self.device, dtype=torch.double)
         self.y_test = self.y_test.to(self.device, dtype=torch.double)
 
-    def train(self, training_iter):
+        if self.train_GP:
+            self.train()
+        else:
+            self.load_model()
+
+
+    def train(self):
 
         # Find optimal model hyperparameters
         self.model.train()
@@ -50,12 +61,12 @@ class GPModel:
         
         #scaler = torch.cuda.amp.grad_scaler.GradScaler()
 
-        for i in range(training_iter):
+        for i in range(self.training_iter):
             optimizer.zero_grad()
             output = self.model(self.X_train)
             loss = -mll(output, self.y_train).sum()
             loss.backward()
-            print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iter, loss.item()))
+            print('Iter %d/%d - Loss: %.3f' % (i + 1, self.training_iter, loss.item()))
             optimizer.step()
 
         end_model_training = time.perf_counter()
@@ -64,6 +75,10 @@ class GPModel:
 
         self.model.eval()
         self.likelihood.eval()
+
+        #Save trained model
+        #torch.save(self.model.state_dict(), 'trained_models/first_joint_GP.pth')
+        
 
     def plot_training_results(self):
                 
@@ -118,3 +133,11 @@ class GPModel:
         with gpytorch.settings.fast_pred_var():  # torch.no_grad(),
             observed_pred = self.likelihood(self.model(X))
         return observed_pred
+    
+    def load_model(self):
+        state_dict = torch.load(self.model_path)
+        self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.double)
+        self.model.load_state_dict(state_dict)
+        self.model.eval()
+        self.likelihood.eval()
+        

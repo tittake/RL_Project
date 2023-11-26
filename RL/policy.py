@@ -18,8 +18,9 @@ class PolicyNetwork:
 
         train_data = dataloader.load_training_data(self.train_path)
         test_data = dataloader.load_test_data(self.test_path)
+        
                     
-            
+    #Not used, at least yet 
     def get_controller(self):
         controller = RLController(**self.controller_params)
         RLmodel = controller.init_controller()

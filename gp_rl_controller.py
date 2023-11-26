@@ -4,7 +4,7 @@ import numpy as np
 from config import configurations
 from RL.policy import PolicyNetwork
 import argparse
-
+import torch
 
 #Initial RL testing values
 #x_boom = 2.1 y_boom = 3.5
@@ -17,25 +17,27 @@ def get_configs():
 """Collective controller for GP model and RL controller"""
 def main(opts):
 
-    #Initialize and train GP model
-    gpmodel = GPModel()
-    gpmodel.initialize_model(opts.train_path, opts.test_path, opts.num_tasks, opts.gp_inputs)
-    gpmodel.train(opts.training_iter)
-    gpmodel.plot_training_results()
+    #Initialize and train model or load pre-trained model
+    gpmodel = GPModel(**vars(opts))
 
+    gpmodel.plot_training_results()
+        
     opts.gp_model = gpmodel
+
     policy_network = PolicyNetwork(**vars(opts))
     #policy_network.optimize_policy()
     
 
     #config = get_configs(opts)
 
-    
+#TODO: Separate GP and RL configs
 if __name__ == "__main__":
     opts = argparse.Namespace()
-    opts.train_path = "data/testing1_simple_10Hz.csv"
-    opts.test_path = "data/training1_simple_10Hz.csv"
+    opts.train_path = "data/training1_simple_10Hz.csv"
+    opts.test_path = "data/testing1_simple_10Hz.csv"
     opts.num_tasks = 2
-    opts.gp_inputs =  6
+    opts.ard_num_dims =  6
     opts.training_iter = 100
+    opts.train_GP = True
+    opts.model_path = 'trained_models/first_joint_GP.pth'
     main(opts)
