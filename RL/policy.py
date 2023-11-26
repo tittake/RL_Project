@@ -6,24 +6,27 @@ import sys
 import os 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from controller import RLController
+from RL.controller import RLController
 from data import dataloader
 from training.GPController import GPModel
 
-class PolicyNetwork(nn.Module):
+class PolicyNetwork:
     def __init__(self, **params):
         super(PolicyNetwork, self).__init__()
         for key, value in params.items():
             setattr(self, key, value)
-        self.gp_model = gpmodel
+
+        train_data = dataloader.load_training_data(self.train_path)
+        test_data = dataloader.load_test_data(self.test_path)
+                    
             
     def get_controller(self):
         controller = RLController(**self.controller_params)
         RLmodel = controller.init_controller()
         return RLmodel
     
-    def set_optimazer(self):
-        ## sets policy optimazer to Adam ##
+    def set_optimizer(self):
+        ## sets policy optimizer to Adam ##
         self.optimizer = torch.optim.Adam(
                 [
                     {"params": self.controller.parameters()},

@@ -53,7 +53,7 @@ class GPModel:
         for i in range(training_iter):
             optimizer.zero_grad()
             output = self.model(self.X_train)
-            loss = -mll(output, self.y_train)#.sum()
+            loss = -mll(output, self.y_train).sum()
             loss.backward()
             print('Iter %d/%d - Loss: %.3f' % (i + 1, training_iter, loss.item()))
             optimizer.step()
@@ -93,7 +93,7 @@ class GPModel:
 
         #Plot multiple results
         # Define the tasks
-        tasks = ["x_boom", "y_boom", "boom_angle"]
+        tasks = ["x_boom", "y_boom"]
 
         for i, task in enumerate(tasks):
             # Make predictions for each task

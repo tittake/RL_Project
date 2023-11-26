@@ -23,7 +23,7 @@ def save_every_tenth_row(input_csv, output_csv):
                 writer.writerow(row)
 
 if __name__ == "__main__":
-    input_csv_file = 'data/some_trajectories/trajectory1_100Hz.csv'  # Replace with the path to your input CSV file
-    output_csv_file = 'data/some_trajectories/trajectory1_10Hz.csv'  # Replace with the desired output CSV file
+    input_csv_file = 'data/training2_simple_100Hz.csv'  # Replace with the path to your input CSV file
+    output_csv_file = 'data/training2_simple_10Hz.csv'  # Replace with the desired output CSV file
 
     save_every_tenth_row(input_csv_file, output_csv_file)

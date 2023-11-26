@@ -10,6 +10,9 @@ scaler_y = StandardScaler()
 min_max_scaler = MinMaxScaler()
 min_max_y_scaler = MinMaxScaler()
 
+X_names = ["theta1", "theta2", "xt2", "theta1dot", "theta2dot", "xt2dot"]
+y_names = ["boom_x", "boom_y", "boom_angle"]
+
 def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     X = np.zeros(X1.shape)
     
@@ -53,15 +56,13 @@ def load_data(path):
 def get_xy(data):
     try:
         #X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
-        #y = data[["theta1", "theta2", "xt2"]]
-        X = data[["theta1", "theta2", "xt2"]]
-        y = data[["boom_x", "boom_y", "boom_angle"]]
+        #X = data[["theta1", "theta2", "xt2"]]
+        X = data[["theta1", "theta2", "xt2", "theta1_dot", "theta2_dot", "xt2_dot"]]
+        y = data[["x_boom", "y_boom"]]
 
-        y = y - y.shift(1) 
-
-        X = X.iloc[:-1]
-
-        y = y.iloc[1:]
+        #y = y - y.shift(1) 
+        #X = X.iloc[:-1]
+        #y = y.iloc[1:]
 
         return X, y
     
@@ -93,36 +94,46 @@ def load_test_data(test_path, normalize=False):
         y = torch.tensor(y.values, dtype=torch.double)
     return X, y
 
-def plot_X_train_vs_time(X_train):
+
+def plot_X_train_vs_time(X, names):
     # Create a time axis based on the number of data points
-    num_data_points = X_train.shape[0]
+    num_data_points = X.shape[0]
     time_axis = np.arange(num_data_points)
 
-    # Plot each feature in X_train against time
-    for feature_index in range(X_train.shape[1]):
-        plt.figure()
-        plt.plot(time_axis, X_train[:, feature_index].numpy())
-        plt.xlabel('Time')
-        plt.ylabel(f'Feature {feature_index + 1}')
-        plt.title(f'Feature {feature_index + 1} vs. Time')
+    # Get the number of features in X
+    num_features = X.shape[1]
+    # Set up a single figure for all subplots
+    fig, axs = plt.subplots(num_features, 1, figsize=(10, 2*num_features))
+    fig.canvas.set_window_title('Scenario 4: testing outputs')
 
-        # You can save the plot as an image if needed
-        # plt.savefig(f'feature_{feature_index + 1}_vs_time.png')
+    # Plot each feature in X against time in subplots
+    for feature_index in range(num_features):
+        axs[feature_index].plot(time_axis, X[:, feature_index])
+        axs[feature_index].set_xlabel('Time')
+        axs[feature_index].set_ylabel(f'{names[feature_index]}')
+        axs[feature_index].set_title(f'{names[feature_index]} vs. Time')
 
-        plt.show()
+
+    # Adjust layout for better spacing
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
 
 if __name__ == "__main__":
-    train_path = "data/some_trajectories/trajectory1_10Hz.csv"
-    test_path = "data/some_trajectories/trajectory2_10Hz.csv"
+    train_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
+    test_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
+
     
     X_train, y_train = load_training_data(train_path, True)
 
     X_test, y_test = load_test_data(test_path, True)
-
-    plot_X_train_vs_time(X_train)
-    plot_X_train_vs_time(X_test)
-    plot_X_train_vs_time(y_train)
-    plot_X_train_vs_time(y_test)
+    print(X_test)
+    plot_X_train_vs_time(X_train, X_names)
+    plot_X_train_vs_time(X_test, X_names)
+    plot_X_train_vs_time(y_train, y_names)
+    plot_X_train_vs_time(y_test, y_names)
 
 
     
