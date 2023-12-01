@@ -33,11 +33,15 @@ def main(opts):
 #TODO: Separate GP and RL configs
 if __name__ == "__main__":
     opts = argparse.Namespace()
-    opts.train_path = "data/training1_simple_10Hz.csv"
-    opts.test_path = "data/testing1_simple_10Hz.csv"
+    #opts.train_path = "data/some_chill_trajectories/trajectory14_100Hz.csv"
+    #opts.test_path = "data/some_chill_trajectories/trajectory46_100Hz.csv"
+    opts.train_path = "data/training2_simple_100Hz.csv"
+    opts.test_path = "data/testing2_simple_100Hz.csv"
     opts.num_tasks = 2
-    opts.ard_num_dims =  6
+    opts.ard_num_dims =  3
     opts.training_iter = 100
     opts.train_GP = True
     opts.model_path = 'trained_models/first_joint_GP.pth'
+    
+    
     main(opts)

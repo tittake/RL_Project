@@ -46,7 +46,7 @@ class GPModel:
 
 
     def train(self):
-
+        
         # Find optimal model hyperparameters
         self.model.train()
         self.likelihood.train()
@@ -60,14 +60,16 @@ class GPModel:
         start_model_training = time.perf_counter()
         
         #scaler = torch.cuda.amp.grad_scaler.GradScaler()
-
+        self.loss_history = []
         for i in range(self.training_iter):
             optimizer.zero_grad()
             output = self.model(self.X_train)
-            loss = -mll(output, self.y_train).sum()
+            loss = -mll(output, self.y_train)
             loss.backward()
             print('Iter %d/%d - Loss: %.3f' % (i + 1, self.training_iter, loss.item()))
             optimizer.step()
+            self.loss_history.append(loss.item())
+
 
         end_model_training = time.perf_counter()
         elapsed_model_training = end_model_training - start_model_training
@@ -83,8 +85,13 @@ class GPModel:
     def plot_training_results(self):
                 
         # Initialize plot
-        fig, axes = plt.subplots(1, self.num_tasks, figsize=(15, 5))
+        fig, axes = plt.subplots(1, self.num_tasks+1, figsize=(15, 5))
 
+        axes[0].plot(self.loss_history, label='Training Loss')
+        axes[0].set_title('Training Loss Over Iterations')
+        axes[0].set_xlabel('Iteration')
+        axes[0].set_ylabel('Loss')
+        axes[0].legend()
         # Make predictions for the single task
         # with torch.no_grad(), gpytorch.settings.fast_pred_var():
             
@@ -119,13 +126,13 @@ class GPModel:
                 lower, upper = predictions.confidence_region()
 
             # Plot training data as black stars
-            axes[i].plot(test_x.cpu().numpy(), self.y_test[:, i].cpu().numpy(), 'k*')
-            axes[i].plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
+            axes[i+1].plot(test_x.cpu().numpy(), self.y_test[:, i].cpu().numpy(), 'k*')
+            axes[i+1].plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
             # Shade in confidence
-            axes[i].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
-            axes[i].set_ylim([-3, 3])
-            axes[i].legend(['Observed Data', 'Mean', 'Confidence'])
-            axes[i].set_title('Observed Values (Likelihood), ' + task)
+            axes[i+1].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
+            axes[i+1].set_ylim([-3, 3])
+            axes[i+1].legend(['Observed Data', 'Mean', 'Confidence'])
+            axes[i+1].set_title('Observed Values (Likelihood), ' + task)
 
         plt.show()
 
