@@ -5,6 +5,7 @@ import time
 import data.dataloader as dataloader
 from training.ExactGP import ExactGPModel
 from training.BatchIndependentMultiTaskGP import BatchIndependentMultiTaskGPModel
+from training.MultiTaskGP import MultitaskGPModel
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 
@@ -30,14 +31,16 @@ class GPModel:
         self.X_train, self.y_train = dataloader.load_training_data(train_path=self.train_path, normalize=True)
         self.X_test, self.y_test = dataloader.load_test_data(test_path=self.test_path, normalize=True)
 
-        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(self.num_tasks).to(device=self.device, dtype=torch.double)
-        self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.double)
+        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=self.num_tasks).to(device=self.device, dtype=torch.float64)
+        
+        self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.float64)
+        #self.model = MultitaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks).to(self.device, torch.float64)
 
         # Move data tensors to the GPU
-        self.X_train = self.X_train.to(self.device, dtype=torch.double)
-        self.y_train = self.y_train.to(self.device, dtype=torch.double)
-        self.X_test = self.X_test.to(self.device, dtype=torch.double)
-        self.y_test = self.y_test.to(self.device, dtype=torch.double)
+        self.X_train = self.X_train.to(self.device, dtype=torch.float64)
+        self.y_train = self.y_train.to(self.device, dtype=torch.float64)
+        self.X_test = self.X_test.to(self.device, dtype=torch.float64)
+        self.y_test = self.y_test.to(self.device, dtype=torch.float64)
 
         if self.train_GP:
             self.train()
@@ -143,7 +146,7 @@ class GPModel:
     
     def load_model(self):
         state_dict = torch.load(self.model_path)
-        self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.double)
+        self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.float64)
         self.model.load_state_dict(state_dict)
         self.model.eval()
         self.likelihood.eval()

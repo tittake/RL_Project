@@ -24,7 +24,7 @@ def main(opts):
         
     opts.gp_model = gpmodel
 
-    policy_network = PolicyNetwork(**vars(opts))
+    #policy_network = PolicyNetwork(**vars(opts))
     #policy_network.optimize_policy()
     
 
