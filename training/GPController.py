@@ -59,7 +59,7 @@ class GPModel:
    
         # Loss
         mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self.model)
-
+        
         start_model_training = time.perf_counter()
         
         #scaler = torch.cuda.amp.grad_scaler.GradScaler()
@@ -82,7 +82,7 @@ class GPModel:
         self.likelihood.eval()
 
         #Save trained model
-        #torch.save(self.model.state_dict(), 'trained_models/first_joint_GP.pth')
+        torch.save(self.model.state_dict(), 'trained_models/two_joints_GP.pth')
         
 
     def plot_training_results(self):
@@ -90,6 +90,8 @@ class GPModel:
         # Initialize plot
         fig, axes = plt.subplots(1, self.num_tasks+1, figsize=(15, 5))
 
+        if(not self.train_GP):
+            self.loss_history = []
         axes[0].plot(self.loss_history, label='Training Loss')
         axes[0].set_title('Training Loss Over Iterations')
         axes[0].set_xlabel('Iteration')

@@ -10,7 +10,7 @@ scaler_y = StandardScaler()
 min_max_scaler = MinMaxScaler()
 min_max_y_scaler = MinMaxScaler()
 
-X_names = ["theta1", "theta2", "xt2"]
+X_names = ["theta1", "theta2", "xt2","fc1", "fc2", "fct2"]
 y_names = ["boom_x", "boom_y", "boom_angle"]
 
 def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
@@ -27,10 +27,10 @@ def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     else:
         #X[:,0:2] = min_max_scaler.transform(X1[:, 0:2])
         #X[:,2:] = X1[:,2:]
-        #X = min_max_scaler.transform(X1)
-        #y = min_max_y_scaler.transform(y1)
-        X = min_max_scaler.fit_transform(X1)
-        y = min_max_y_scaler.fit_transform(y1)
+        X = min_max_scaler.transform(X1)
+        y = min_max_y_scaler.transform(y1)
+        #X = min_max_scaler.fit_transform(X1)
+        #y = min_max_y_scaler.fit_transform(y1)
 
     #y = scaler.fit_transform(y1)
 
@@ -53,8 +53,8 @@ def load_data(path):
 
 def get_xy(data):
     try:
-        #X = data[["fc1", "fc2", "fct2"]]
-        X = data[["theta1", "theta2", "xt2"]]
+        X = data[["theta1", "theta2", "xt2","fc1", "fc2", "fct2"]]
+        #X = data[["theta1", "theta2", "xt2"]]
         #y = data[["boom_x","boom_y"]]
         y = data[["x_boom", "y_boom"]]
 
@@ -120,10 +120,10 @@ def plot_X_train_vs_time(X, names):
 
 
 if __name__ == "__main__":
-    #train_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
-    #test_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
-    train_path = "data/training2_simple_100Hz.csv"
-    test_path = "data/testing2_simple_100Hz.csv"
+    train_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
+    test_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
+    #train_path = "data/training2_simple_100Hz.csv"
+    #test_path = "data/testing2_simple_100Hz.csv"
     
     X_train, y_train = load_training_data(train_path, True)
 
