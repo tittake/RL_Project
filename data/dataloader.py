@@ -4,6 +4,8 @@ import torch
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+import os
 
 scaler = StandardScaler()
 scaler_y = StandardScaler()
@@ -27,8 +29,8 @@ def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     else:
         #X[:,0:2] = min_max_scaler.transform(X1[:, 0:2])
         #X[:,2:] = X1[:,2:]
-        X = min_max_scaler.transform(X1)
-        y = min_max_y_scaler.transform(y1)
+        X = min_max_scaler.fit_transform(X1)
+        y = min_max_y_scaler.fit_transform(y1)
         #X = min_max_scaler.fit_transform(X1)
         #y = min_max_y_scaler.fit_transform(y1)
 
@@ -51,12 +53,38 @@ def calculate_mean_std(X):
 def load_data(path):
     return pd.read_csv(path)
 
+def load_data_directory(path):
+    files = os.listdir(path)
+
+    csv_files = [file for file in files if file.endswith('.csv')]
+    
+    combined_df = []
+    for csv_file in csv_files:
+        file_path = os.path.join(path, csv_file)
+        df = pd.read_csv(file_path)
+        combined_df.append(df)
+
+    combined_df = pd.concat(combined_df, ignore_index=True)
+    
+    X,y = get_xy(combined_df)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+    mean_states_train, std_states_train = calculate_mean_std(X_train.values)
+    mean_states_test, std_states_test = calculate_mean_std(X_test.values)
+    
+    X_train, y_train = normalize_data(X.values, y.values, mean_states_train, std_states_train, False)
+    X_test, y_test = normalize_data(X.values, y.values, mean_states_test, std_states_test, True)
+
+    
+    return X_train, X_test, y_train, y_test
+
 def get_xy(data):
     try:
         X = data[["theta1", "theta2", "xt2","fc1", "fc2", "fct2"]]
         #X = data[["theta1", "theta2", "xt2"]]
-        #y = data[["boom_x","boom_y"]]
-        y = data[["x_boom", "y_boom"]]
+        y = data[["boom_x","boom_y"]]
+        
+        #y = data[["x_boom", "y_boom"]]
 
         #y = y - y.shift(1) 
         #X = X.iloc[:-1]
@@ -120,15 +148,18 @@ def plot_X_train_vs_time(X, names):
 
 
 if __name__ == "__main__":
-    train_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
-    test_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
-    #train_path = "data/training2_simple_100Hz.csv"
-    #test_path = "data/testing2_simple_100Hz.csv"
+    #train_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
+    #test_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
+    train_path = "data/two-joint_trajectories_10Hz/trajectory2.csv"
+    test_path = "data/two-joint_trajectories_10Hz/trajectory3.csv"
     
+    data_directory = 'data/two-joint_trajectories_10Hz'
     X_train, y_train = load_training_data(train_path, True)
 
     X_test, y_test = load_test_data(test_path, True)
-    print(X_test)
+
+    X_train, X_test, y_train, y_test = load_data_directory(data_directory)
+    
     plot_X_train_vs_time(X_train, X_names)
     plot_X_train_vs_time(X_test, X_names)
     plot_X_train_vs_time(y_train, y_names)

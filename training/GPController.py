@@ -20,6 +20,7 @@ class GPModel:
         
         # Check if a GPU is available
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print(self.device)
 
         self.initialize_model()
 
@@ -30,6 +31,7 @@ class GPModel:
         #self.ard_num_dims = ard_num_dims
         self.X_train, self.y_train = dataloader.load_training_data(train_path=self.train_path, normalize=True)
         self.X_test, self.y_test = dataloader.load_test_data(test_path=self.test_path, normalize=True)
+        self.X_train, self.X_test, self.y_train, self.y_test = dataloader.load_data_directory(self.data_directory)
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=self.num_tasks).to(device=self.device, dtype=torch.float64)
         
@@ -88,15 +90,15 @@ class GPModel:
     def plot_training_results(self):
                 
         # Initialize plot
-        fig, axes = plt.subplots(1, self.num_tasks+1, figsize=(15, 5))
+        fig, axes = plt.subplots(1, self.num_tasks, figsize=(15, 5))
 
         if(not self.train_GP):
             self.loss_history = []
-        axes[0].plot(self.loss_history, label='Training Loss')
-        axes[0].set_title('Training Loss Over Iterations')
-        axes[0].set_xlabel('Iteration')
-        axes[0].set_ylabel('Loss')
-        axes[0].legend()
+        #axes[0].plot(self.loss_history, label='Training Loss')
+        #axes[0].set_title('Training Loss Over Iterations')
+        #axes[0].set_xlabel('Iteration')
+        #axes[0].set_ylabel('Loss')
+        #axes[0].legend()
         # Make predictions for the single task
         # with torch.no_grad(), gpytorch.settings.fast_pred_var():
             
@@ -131,13 +133,14 @@ class GPModel:
                 lower, upper = predictions.confidence_region()
 
             # Plot training data as black stars
-            axes[i+1].plot(test_x.cpu().numpy(), self.y_test[:, i].cpu().numpy(), 'k*')
-            axes[i+1].plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
+            axes[i].plot(test_x.cpu().numpy(), self.y_test[:, i].cpu().numpy(), 'k*')
+            axes[i].plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
+            
             # Shade in confidence
-            axes[i+1].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
-            axes[i+1].set_ylim([-3, 3])
-            axes[i+1].legend(['Observed Data', 'Mean', 'Confidence'])
-            axes[i+1].set_title('Observed Values (Likelihood), ' + task)
+            axes[i].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
+            axes[i].set_ylim([-0.5, 1.5])
+            axes[i].legend(['Observed Data', 'Mean', 'Confidence'])
+            axes[i].set_title('Observed Values (Likelihood), ' + task)
 
         plt.show()
 
