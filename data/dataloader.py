@@ -29,8 +29,8 @@ def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     else:
         #X[:,0:2] = min_max_scaler.transform(X1[:, 0:2])
         #X[:,2:] = X1[:,2:]
-        X = min_max_scaler.fit_transform(X1)
-        y = min_max_y_scaler.fit_transform(y1)
+        X = min_max_scaler.transform(X1)
+        y = min_max_y_scaler.transform(y1)
         #X = min_max_scaler.fit_transform(X1)
         #y = min_max_y_scaler.fit_transform(y1)
 
