@@ -31,8 +31,10 @@ class GPModel:
         #self.ard_num_dims = ard_num_dims
         self.X_train, self.y_train = dataloader.load_training_data(train_path=self.train_path, normalize=True)
         self.X_test, self.y_test = dataloader.load_test_data(test_path=self.test_path, normalize=True)
-        self.X_train, self.X_test, self.y_train, self.y_test = dataloader.load_data_directory(self.data_directory)
 
+        #Use whole data directory instead
+        self.X_train, self.X_test, self.y_train, self.y_test = dataloader.load_data_directory(self.data_directory)
+        
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=self.num_tasks).to(device=self.device, dtype=torch.float64)
         
         self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.float64)
@@ -84,45 +86,24 @@ class GPModel:
         self.likelihood.eval()
 
         #Save trained model
-        torch.save(self.model.state_dict(), 'trained_models/two_joints_GP.pth')
+        #torch.save(self.model.state_dict(), 'trained_models/two_joints_GP.pth')
         
 
     def plot_training_results(self):
-                
-        # Initialize plot
-        fig, axes = plt.subplots(1, self.num_tasks, figsize=(15, 5))
-
-        if(not self.train_GP):
+        # Plot for training loss
+        fig_loss, ax_loss = plt.subplots(figsize=(6, 4))
+        if not self.train_GP:
             self.loss_history = []
-        #axes[0].plot(self.loss_history, label='Training Loss')
-        #axes[0].set_title('Training Loss Over Iterations')
-        #axes[0].set_xlabel('Iteration')
-        #axes[0].set_ylabel('Loss')
-        #axes[0].legend()
-        # Make predictions for the single task
-        # with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            
-        #     print(self.X_test.shape)
-        #     test_x = torch.linspace(0, 10 ,len(self.X_test[:, 0]))
-        #     predictions = self.likelihood(self.model(self.X_test))
-        #     mean = predictions.mean
-        #     lower, upper = predictions.confidence_region()
+        ax_loss.plot(self.loss_history, label='Training Loss')
+        ax_loss.set_title('Training Loss Over Iterations')
+        ax_loss.set_xlabel('Iteration')
+        ax_loss.set_ylabel('Loss')
+        ax_loss.legend()
+        plt.show()
 
-        # Create a single plot for the task
-        #plt.plot(test_x.cpu().numpy(), self.y_test[:, 0].cpu().numpy(), 'k*')
-        #plt.plot(test_x.cpu().numpy(), self.X_train[:, 1].cpu().numpy(), 'r*')
-        #plt.plot(test_x.cpu().numpy(), mean[:, 0].cpu().numpy(), 'b')
-        # Shade in confidence
-        #plt.fill_between(test_x.cpu().numpy(), lower[:, 0].cpu().numpy(), upper[:, 0].cpu().numpy(), alpha=0.5)
-        #plt.ylim(-3, 3)
-        #plt.legend(['Observed Data', 'Mean', 'Confidence'])
-        #plt.title(f'Observed Values (Likelihood) for theta1')
-
-        #plt.show()
-
-        #Plot multiple results
-        # Define the tasks
+        # Plot for tasks
         tasks = ["x_boom", "y_boom"]
+        fig_tasks, axes_tasks = plt.subplots(1, len(tasks), figsize=(12, 4))
 
         for i, task in enumerate(tasks):
             # Make predictions for each task
@@ -133,16 +114,17 @@ class GPModel:
                 lower, upper = predictions.confidence_region()
 
             # Plot training data as black stars
-            axes[i].plot(test_x.cpu().numpy(), self.y_test[:, i].cpu().numpy(), 'k*')
-            axes[i].plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
+            axes_tasks[i].plot(test_x.cpu().numpy(), self.y_test[:, i].cpu().numpy(), 'k*')
+            axes_tasks[i].plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
             
             # Shade in confidence
-            axes[i].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
-            axes[i].set_ylim([-0.5, 1.5])
-            axes[i].legend(['Observed Data', 'Mean', 'Confidence'])
-            axes[i].set_title('Observed Values (Likelihood), ' + task)
+            axes_tasks[i].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
+            axes_tasks[i].set_ylim([-0.5, 1.5])
+            axes_tasks[i].legend(['Observed Data', 'Mean', 'Confidence'])
+            axes_tasks[i].set_title('Observed Values (Likelihood), ' + task)
 
         plt.show()
+
 
     def predict(self, X):
         with gpytorch.settings.fast_pred_var():  # torch.no_grad(),

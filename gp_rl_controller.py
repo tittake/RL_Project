@@ -39,10 +39,9 @@ if __name__ == "__main__":
     opts.test_path = "data/two-joint_trajectories_10Hz/trajectory3.csv" 
     opts.data_directory = 'data/two-joint_trajectories_10Hz' #Use a whole directory of data
     opts.num_tasks = 2
-    opts.ard_num_dims = 6
+    opts.ard_num_dims = 3
     opts.training_iter = 150
     opts.train_GP = True
     opts.model_path = 'trained_models/two_joints_GP.pth'
-    
     
     main(opts)

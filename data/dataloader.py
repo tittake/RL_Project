@@ -67,13 +67,20 @@ def load_data_directory(path):
     combined_df = pd.concat(combined_df, ignore_index=True)
     
     X,y = get_xy(combined_df)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+    def non_shuffling_train_test_split(X, y, test_size=0.2):
+        i = int((1 - test_size) * X.shape[0]) + 1
+        X_train, X_test = np.split(X, [i])
+        y_train, y_test = np.split(y, [i])
+        return X_train, X_test, y_train, y_test
+    
+    X_train, X_test, y_train, y_test = non_shuffling_train_test_split(X, y, test_size=0.2)
 
     mean_states_train, std_states_train = calculate_mean_std(X_train.values)
     mean_states_test, std_states_test = calculate_mean_std(X_test.values)
     
-    X_train, y_train = normalize_data(X.values, y.values, mean_states_train, std_states_train, False)
-    X_test, y_test = normalize_data(X.values, y.values, mean_states_test, std_states_test, True)
+    X_train, y_train = normalize_data(X_train.values, y_train.values, mean_states_train, std_states_train, False)
+    X_test, y_test = normalize_data(X_test.values, y_test.values, mean_states_test, std_states_test, True)
 
     
     return X_train, X_test, y_train, y_test
@@ -81,7 +88,7 @@ def load_data_directory(path):
 def get_xy(data):
     try:
         X = data[["theta1", "theta2", "xt2","fc1", "fc2", "fct2"]]
-        #X = data[["theta1", "theta2", "xt2"]]
+        X = data[["theta1", "theta2", "xt2"]]
         y = data[["boom_x","boom_y"]]
         
         #y = data[["x_boom", "y_boom"]]
@@ -155,10 +162,10 @@ if __name__ == "__main__":
     
     data_directory = 'data/two-joint_trajectories_10Hz'
     X_train, y_train = load_training_data(train_path, True)
-
     X_test, y_test = load_test_data(test_path, True)
 
     X_train, X_test, y_train, y_test = load_data_directory(data_directory)
+    print(X_train.shape, X_test.shape)
     
     plot_X_train_vs_time(X_train, X_names)
     plot_X_train_vs_time(X_test, X_names)
