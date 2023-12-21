@@ -21,20 +21,12 @@ def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     #MinMax [-1,1] torques
     #MinMax for states
     if not test:
-        #X[:,0:2] = min_max_scaler.fit_transform(X1[:, 0:2])
-        #X[:,2:] = X1[:, 2:]
         X = min_max_scaler.fit_transform(X1)
         y = min_max_y_scaler.fit_transform(y1)
         
     else:
-        #X[:,0:2] = min_max_scaler.transform(X1[:, 0:2])
-        #X[:,2:] = X1[:,2:]
         X = min_max_scaler.transform(X1)
         y = min_max_y_scaler.transform(y1)
-        #X = min_max_scaler.fit_transform(X1)
-        #y = min_max_y_scaler.fit_transform(y1)
-
-    #y = scaler.fit_transform(y1)
 
     X = torch.tensor(X, dtype=torch.double)
     y = torch.tensor(y, dtype=torch.double)
@@ -45,9 +37,6 @@ def calculate_mean_std(X):
     mean = np.mean(X[:, :-1], axis=0)
     std = np.std(X[:, :-1], axis=0)
     
-    #mean = np.mean(X)
-    #std = np.std(X)
-
     return mean, std
 
 def load_data(path):
@@ -59,11 +48,14 @@ def load_data_directory(path):
     csv_files = [file for file in files if file.endswith('.csv')]
     
     combined_df = []
+    iter = 0
     for csv_file in csv_files:
         file_path = os.path.join(path, csv_file)
         df = pd.read_csv(file_path)
+        #if iter%5==1:
+        #    combined_df.append(df)
+        #iter += 1
         combined_df.append(df)
-
     combined_df = pd.concat(combined_df, ignore_index=True)
     
     X,y = get_xy(combined_df)
@@ -88,14 +80,13 @@ def load_data_directory(path):
 def get_xy(data):
     try:
         X = data[["theta1", "theta2", "xt2","fc1", "fc2", "fct2"]]
-        X = data[["theta1", "theta2", "xt2"]]
+        #X = data[["theta1", "theta2", "xt2"]]
         y = data[["boom_x","boom_y"]]
-        
-        #y = data[["x_boom", "y_boom"]]
 
-        #y = y - y.shift(1) 
-        #X = X.iloc[:-1]
-        #y = y.iloc[1:]
+        #Shift data so we predict next end-effector position
+        y = y.shift(1)
+        X = X.iloc[:-1]
+        y = y.iloc[1:]
 
         return X, y
     
@@ -137,7 +128,7 @@ def plot_X_train_vs_time(X, names):
     num_features = X.shape[1]
     # Set up a single figure for all subplots
     fig, axs = plt.subplots(num_features, 1, figsize=(10, 2*num_features))
-    fig.canvas.set_window_title('Scenario 4: testing outputs')
+    fig.suptitle('Testing outputs', fontsize=24)
 
     # Plot each feature in X against time in subplots
     for feature_index in range(num_features):
@@ -149,6 +140,7 @@ def plot_X_train_vs_time(X, names):
 
     # Adjust layout for better spacing
     plt.tight_layout()
+    plt.subplots_adjust(top=0.9)
 
     # Show the plot
     plt.show()
@@ -161,6 +153,7 @@ if __name__ == "__main__":
     test_path = "data/two-joint_trajectories_10Hz/trajectory3.csv"
     
     data_directory = 'data/two-joint_trajectories_10Hz'
+
     X_train, y_train = load_training_data(train_path, True)
     X_test, y_test = load_test_data(test_path, True)
 

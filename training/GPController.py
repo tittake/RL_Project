@@ -9,7 +9,7 @@ from training.MultiTaskGP import MultitaskGPModel
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 
-#torch.cuda.memory_summary(device=None, abbreviated=False)
+torch.cuda.memory_summary(device=None, abbreviated=False)
 
 class GPModel:
     def __init__(self, **params):
@@ -27,14 +27,12 @@ class GPModel:
 
     def initialize_model(self):
         # Load data
-        #self.num_tasks = num_tasks
-        #self.ard_num_dims = ard_num_dims
         self.X_train, self.y_train = dataloader.load_training_data(train_path=self.train_path, normalize=True)
         self.X_test, self.y_test = dataloader.load_test_data(test_path=self.test_path, normalize=True)
 
         #Use whole data directory instead
         self.X_train, self.X_test, self.y_train, self.y_test = dataloader.load_data_directory(self.data_directory)
-        
+    
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=self.num_tasks).to(device=self.device, dtype=torch.float64)
         
         self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.float64)
@@ -119,7 +117,7 @@ class GPModel:
             
             # Shade in confidence
             axes_tasks[i].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
-            axes_tasks[i].set_ylim([-0.5, 1.5])
+            axes_tasks[i].set_ylim([-0.2, 1.3])
             axes_tasks[i].legend(['Observed Data', 'Mean', 'Confidence'])
             axes_tasks[i].set_title('Observed Values (Likelihood), ' + task)
 
