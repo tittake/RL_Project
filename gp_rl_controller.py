@@ -1,7 +1,6 @@
 from training.GPController import GPModel
 from RL.controller import RLController
 import numpy as np
-from config import configurations
 from RL.policy import PolicyNetwork
 import argparse
 import torch
