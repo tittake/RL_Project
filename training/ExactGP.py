@@ -1,5 +1,5 @@
-import torch
 import gpytorch
+import torch
 
 class ExactGPModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood):

@@ -1,13 +1,15 @@
-import matplotlib.pyplot as plt
-import gpytorch
-import torch
 import time
+
+import gpytorch
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, TensorDataset
+
 import data.dataloader as dataloader
 from training.ExactGP import ExactGPModel
 from training.BatchIndependentMultiTaskGP import BatchIndependentMultiTaskGPModel
 from training.MultiTaskGP import MultitaskGPModel
-from torch.utils.data import DataLoader, TensorDataset
-import numpy as np
 
 class GPModel:
 

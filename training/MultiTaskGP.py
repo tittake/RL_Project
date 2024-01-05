@@ -1,5 +1,5 @@
-import torch
 import gpytorch
+import torch
 
 
 class MultitaskGPModel(gpytorch.models.ExactGP):

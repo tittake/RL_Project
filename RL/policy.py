@@ -1,13 +1,15 @@
 #! C:\Users\vaino\robot_projectWork\RL_Project\RLProject\Scripts\python.exe
 
+from copy import deepcopy
+import time
+import os 
+import sys
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
-from copy import deepcopy
-import time
-import sys
-import os 
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from RL.controller import RLController

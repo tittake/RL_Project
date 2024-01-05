@@ -1,9 +1,10 @@
+import argparse
+import numpy as np
+import torch
+
 from training.GPController import GPModel
 from RL.controller import RLController
-import numpy as np
 from RL.policy import PolicyNetwork
-import argparse
-import torch
 
 #Initial RL testing values
 #x_boom = 2.1 y_boom = 3.5
