@@ -9,8 +9,6 @@ from training.MultiTaskGP import MultitaskGPModel
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 
-torch.cuda.memory_summary(device=None, abbreviated=False)
-
 class GPModel:
     def __init__(self, **params):
         super(GPModel, self).__init__()
