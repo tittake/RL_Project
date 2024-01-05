@@ -58,8 +58,8 @@ class PolicyNetwork:
             self.reset()
 
             self.set_optimizer()
-            # reset and set optimizer over 10 trials and  calculate and plot reward and
-            # mean error over the amount of max_iterations
+            # reset and set optimizer over 10 trials
+            # calculate & plot reward and mean error over max_iterations
             optimInfo = {"loss": [], "time": []}
             for i in range(maxiter):
                 self.optimizer.zero_grad()
@@ -93,7 +93,7 @@ class PolicyNetwork:
             return results
             TODO: store actions and rewards to array(?)
         """
-        state = deepcopy(self.gp_model) # self.gp_model.model?, booom location from the GP model
+        state = deepcopy(self.gp_model) # end-effector location from GP model
         u = self.controller(state)
         t1 = time.perf_counter() # time for the loss calulations 
         target_tensor = get_tensor(

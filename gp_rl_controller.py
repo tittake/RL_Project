@@ -25,10 +25,8 @@ def main(opts):
     print(gpmodel.predict([0,0,0,1,1,1]))
 
     policy_network = PolicyNetwork(**vars(opts))
-    #policy_network.optimize_policy()
-    
 
-    #config = get_configs(opts)
+    #policy_network.optimize_policy()
 
 #TODO: Separate GP and RL configs
 if __name__ == "__main__":
@@ -43,5 +41,5 @@ if __name__ == "__main__":
     opts.training_iter = 150
     opts.train_GP = True
     opts.model_path = 'trained_models/two_joints_GP.pth'
-    
+
     main(opts)

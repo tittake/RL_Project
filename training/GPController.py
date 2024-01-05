@@ -10,33 +10,50 @@ from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 
 class GPModel:
+
     def __init__(self, **params):
         super(GPModel, self).__init__()
 
         for key, value in params.items():
             setattr(self, key, value)
         
-        # Check if a GPU is available
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0"
+                                   if torch.cuda.is_available()
+                                   else "cpu")
+
         print(self.device)
 
         self.initialize_model()
 
 
     def initialize_model(self):
-        # Load data
-        self.X_train, self.y_train = dataloader.load_training_data(train_path=self.train_path, normalize=True)
-        self.X_test, self.y_test = dataloader.load_test_data(test_path=self.test_path, normalize=True)
+
+        self.X_train, self.y_train = \
+            dataloader.load_training_data(train_path = self.train_path,
+                                          normalize  = True)
+
+        self.X_test, self.y_test = \
+            dataloader.load_test_data(test_path = self.test_path,
+                                      normalize = True)
 
         #Use whole data directory instead
-        self.X_train, self.X_test, self.y_train, self.y_test = dataloader.load_data_directory(self.data_directory)
+        self.X_train, self.X_test, self.y_train, self.y_test = \
+            dataloader.load_data_directory(self.data_directory)
     
-        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=self.num_tasks).to(device=self.device, dtype=torch.float64)
+        self.likelihood = \
+            gpytorch.likelihoods\
+            .MultitaskGaussianLikelihood(num_tasks = self.num_tasks
+                                         ).to(device = self.device,
+                                              dtype  = torch.float64)
         
-        self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.float64)
-        #self.model = MultitaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks).to(self.device, torch.float64)
+        self.model = \
+            BatchIndependentMultiTaskGPModel(self.X_train,
+                                             self.y_train,
+                                             self.likelihood,
+                                             self.num_tasks,
+                                             self.ard_num_dims
+                                             ).to(self.device, torch.float64)
 
-        # Move data tensors to the GPU
         self.X_train = self.X_train.to(self.device, dtype=torch.float64)
         self.y_train = self.y_train.to(self.device, dtype=torch.float64)
         self.X_test = self.X_test.to(self.device, dtype=torch.float64)
@@ -50,26 +67,25 @@ class GPModel:
 
     def train(self):
         
-        # Find optimal model hyperparameters
         self.model.train()
         self.likelihood.train()
 
-        # Adam optimizer
         optimizer = torch.optim.Adam(self.model.parameters(), lr=0.1)
    
-        # Loss
-        mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self.model)
+        loss_metric = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood,
+                                                               self.model)
         
         start_model_training = time.perf_counter()
         
-        #scaler = torch.cuda.amp.grad_scaler.GradScaler()
         self.loss_history = []
+
         for i in range(self.training_iter):
             optimizer.zero_grad()
             output = self.model(self.X_train)
-            loss = -mll(output, self.y_train)
+            loss = -loss_metric(output, self.y_train)
             loss.backward()
-            print('Iter %d/%d - Loss: %.3f' % (i + 1, self.training_iter, loss.item()))
+            print('Iter %d/%d - Loss: %.3f'
+                  % (i + 1, self.training_iter, loss.item()))
             optimizer.step()
             self.loss_history.append(loss.item())
 
@@ -82,8 +98,9 @@ class GPModel:
         self.likelihood.eval()
 
         #Save trained model
-        #torch.save(self.model.state_dict(), 'trained_models/two_joints_GP.pth')
-        
+        # torch.save(self.model.state_dict(),
+                   # 'trained_models/two_joints_GP.pth')
+
 
     def plot_training_results(self):
         # Plot for training loss
@@ -110,11 +127,18 @@ class GPModel:
                 lower, upper = predictions.confidence_region()
 
             # Plot training data as black stars
-            axes_tasks[i].plot(test_x.cpu().numpy(), self.y_test[:, i].cpu().numpy(), 'k*')
-            axes_tasks[i].plot(test_x.cpu().numpy(), mean[:, i].cpu().numpy(), 'b')
+            axes_tasks[i].plot(test_x.cpu().numpy(),
+                               self.y_test[:, i].cpu().numpy(), 'k*')
+
+            axes_tasks[i].plot(test_x.cpu().numpy(),
+                               mean[:, i].cpu().numpy(), 'b')
             
             # Shade in confidence
-            axes_tasks[i].fill_between(test_x.cpu().numpy(), lower[:, i].cpu().numpy(), upper[:, i].cpu().numpy(), alpha=0.5)
+            axes_tasks[i].fill_between(test_x.cpu().numpy(),
+                                       lower[:, i].cpu().numpy(),
+                                       upper[:, i].cpu().numpy(),
+                                       alpha=0.5)
+
             axes_tasks[i].set_ylim([-0.2, 1.3])
             axes_tasks[i].legend(['Observed Data', 'Mean', 'Confidence'])
             axes_tasks[i].set_title('Observed Values (Likelihood), ' + task)
@@ -128,9 +152,17 @@ class GPModel:
         return observed_pred
     
     def load_model(self):
+
         state_dict = torch.load(self.model_path)
-        self.model = BatchIndependentMultiTaskGPModel(self.X_train, self.y_train, self.likelihood, self.num_tasks, self.ard_num_dims).to(self.device, torch.float64)
+
+        self.model = BatchIndependentMultiTaskGPModel(self.X_train,
+                                                      self.y_train,
+                                                      self.likelihood,
+                                                      self.num_tasks,
+                                                      self.ard_num_dims
+                                                      ).to(self.device,
+                                                           torch.float64)
+
         self.model.load_state_dict(state_dict)
         self.model.eval()
         self.likelihood.eval()
-        
