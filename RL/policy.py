@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 import time
-import os 
+import os
 import sys
 
 import numpy as np
@@ -31,7 +31,7 @@ class PolicyNetwork:
         controller = RLController(**self.controller_params)
         RLmodel = controller.init_controller()
         return RLmodel
-    
+
     def set_optimizer(self):
         ## sets policy optimizer to Adam ##
         self.optimizer = torch.optim.Adam(
@@ -40,7 +40,7 @@ class PolicyNetwork:
                 ],
                 lr = self.learning_rate
         )
-        
+
     def compute_reward(self, state, target_state):
         # Compute Euclidean distance
         distance = torch.norm(state - target_state)
@@ -48,14 +48,14 @@ class PolicyNetwork:
         reward = -distance.item()
 
         return reward
-    
+
     def optimize_policy(self):
         """
         Optimize controller parameters
         """
         maxiter = self.training_iter #How many max iterations do we want
         trials = 10 # for testing purposes only
-        
+
         for trial in range(trials):
             self.reset()
 
@@ -91,20 +91,20 @@ class PolicyNetwork:
             )
 
     def opt_step_loss(self):
-        """Calculate predictions and reward for one step and 
+        """Calculate predictions and reward for one step and
             return results
             TODO: store actions and rewards to array(?)
         """
         state = deepcopy(self.gp_model) # end-effector location from GP model
         u = self.controller(state)
-        t1 = time.perf_counter() # time for the loss calulations 
+        t1 = time.perf_counter() # time for the loss calulations
         target_tensor = get_tensor(
             data=self.target_state
         )
         # predict next state
         #TODO make prediction function
         predictions = self.calc_predictions(self.gp_model)
-        # TODO make proper fucntion for action choosing 
+        # TODO make proper fucntion for action choosing
         action = self.choose_action(state, predictions)
         # calculate reward and make counter for reward
         reward = self.compute_reward(state, action)
@@ -114,11 +114,11 @@ class PolicyNetwork:
         time_elapsed = time.perf_counter() - t1
         print(f"elapsed time: {time_elapsed:.2f}s")
         return reward, mean_error
-    
+
     def calc_predictions(gp_model):
         #To be implmented
         pass
-    
+
     def choose_action(state, predictions):
         # claculate optimal action based on current state and predictions
         pass

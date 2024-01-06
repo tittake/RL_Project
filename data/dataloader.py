@@ -17,13 +17,13 @@ y_names = ["boom_x", "boom_y", "boom_angle"]
 
 def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     X = np.zeros(X1.shape)
-    
+
     #MinMax [-1,1] torques
     #MinMax for states
     if not test:
         X = min_max_scaler.fit_transform(X1)
         y = min_max_y_scaler.fit_transform(y1)
-        
+
     else:
         X = min_max_scaler.transform(X1)
         y = min_max_y_scaler.transform(y1)
@@ -33,10 +33,10 @@ def normalize_data(X1, y1, mean, std, test, epsilon=1e-8):
     return X, y
 
 def calculate_mean_std(X):
-    
+
     mean = np.mean(X[:, :-1], axis=0)
     std = np.std(X[:, :-1], axis=0)
-    
+
     return mean, std
 
 def load_data(path):
@@ -46,7 +46,7 @@ def load_data_directory(path):
     files = os.listdir(path)
 
     csv_files = [file for file in files if file.endswith('.csv')]
-    
+
     combined_df = []
     iter = 0
     for csv_file in csv_files:
@@ -57,7 +57,7 @@ def load_data_directory(path):
         #iter += 1
         combined_df.append(df)
     combined_df = pd.concat(combined_df, ignore_index=True)
-    
+
     X,y = get_xy(combined_df)
 
     def non_shuffling_train_test_split(X, y, test_size=0.2):
@@ -65,16 +65,16 @@ def load_data_directory(path):
         X_train, X_test = np.split(X, [i])
         y_train, y_test = np.split(y, [i])
         return X_train, X_test, y_train, y_test
-    
+
     X_train, X_test, y_train, y_test = non_shuffling_train_test_split(X, y, test_size=0.2)
 
     mean_states_train, std_states_train = calculate_mean_std(X_train.values)
     mean_states_test, std_states_test = calculate_mean_std(X_test.values)
-    
+
     X_train, y_train = normalize_data(X_train.values, y_train.values, mean_states_train, std_states_train, False)
     X_test, y_test = normalize_data(X_test.values, y_test.values, mean_states_test, std_states_test, True)
 
-    
+
     return X_train, X_test, y_train, y_test
 
 def get_xy(data):
@@ -89,13 +89,13 @@ def get_xy(data):
         y = y.iloc[1:]
 
         return X, y
-    
+
     except Exception:
         raise AttributeError("Invalid data format")
 
 def load_training_data(train_path, normalize=True):
     train_data = load_data(train_path)
-    X, y = get_xy(train_data)  
+    X, y = get_xy(train_data)
 
     mean_states, std_states = calculate_mean_std(X.values)
     if normalize:
@@ -104,7 +104,7 @@ def load_training_data(train_path, normalize=True):
         X = torch.tensor(X.values, dtype=torch.double)
         y = torch.tensor(y.values, dtype=torch.double)
 
-    return X, y 
+    return X, y
 
 def load_test_data(test_path, normalize=False):
     test_data = load_data(test_path)
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     #test_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
     train_path = "data/two-joint_trajectories_10Hz/trajectory2.csv"
     test_path = "data/two-joint_trajectories_10Hz/trajectory3.csv"
-    
+
     data_directory = 'data/two-joint_trajectories_10Hz'
 
     X_train, y_train = load_training_data(train_path, True)
@@ -159,13 +159,13 @@ if __name__ == "__main__":
 
     X_train, X_test, y_train, y_test = load_data_directory(data_directory)
     print(X_train.shape, X_test.shape)
-    
+
     plot_X_train_vs_time(X_train, X_names)
     plot_X_train_vs_time(X_test, X_names)
     plot_X_train_vs_time(y_train, y_names)
     plot_X_train_vs_time(y_test, y_names)
 
 
-    
+
 
 

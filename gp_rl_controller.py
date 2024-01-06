@@ -21,7 +21,7 @@ def main(configuration):
     gpmodel = GPModel(**configuration)
 
     gpmodel.plot_training_results()
-        
+
     print(gpmodel.predict([0, 0, 0, 1, 1, 1]))
 
     policy_network = PolicyNetwork(**configuration)
@@ -35,5 +35,5 @@ if __name__ == "__main__":
 
         configuration = yaml.load(configuration_file,
                                   Loader = yaml.Loader)
-    
+
     main(configuration)

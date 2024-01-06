@@ -18,7 +18,7 @@ class GPModel:
 
         for key, value in params.items():
             setattr(self, key, value)
-        
+
         self.device = torch.device("cuda:0"
                                    if torch.cuda.is_available()
                                    else "cpu")
@@ -41,13 +41,13 @@ class GPModel:
         #Use whole data directory instead
         self.X_train, self.X_test, self.y_train, self.y_test = \
             dataloader.load_data_directory(self.data_directory)
-    
+
         self.likelihood = \
             gpytorch.likelihoods\
             .MultitaskGaussianLikelihood(num_tasks = self.num_tasks
                                          ).to(device = self.device,
                                               dtype  = torch.float64)
-        
+
         self.model = \
             BatchIndependentMultiTaskGPModel(self.X_train,
                                              self.y_train,
@@ -68,17 +68,17 @@ class GPModel:
 
 
     def train(self):
-        
+
         self.model.train()
         self.likelihood.train()
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=0.1)
-   
+
         loss_metric = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood,
                                                                self.model)
-        
+
         start_model_training = time.perf_counter()
-        
+
         self.loss_history = []
 
         for i in range(self.training_iter):
@@ -134,7 +134,7 @@ class GPModel:
 
             axes_tasks[i].plot(test_x.cpu().numpy(),
                                mean[:, i].cpu().numpy(), 'b')
-            
+
             # Shade in confidence
             axes_tasks[i].fill_between(test_x.cpu().numpy(),
                                        lower[:, i].cpu().numpy(),
@@ -152,7 +152,7 @@ class GPModel:
         with gpytorch.settings.fast_pred_var():  # torch.no_grad(),
             observed_pred = self.likelihood(self.model(X))
         return observed_pred
-    
+
     def load_model(self):
 
         state_dict = torch.load(self.model_path)
