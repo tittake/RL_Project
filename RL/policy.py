@@ -13,6 +13,7 @@ from data import dataloader
 from RL.controller import RLController
 from RL.utils import get_tensor, plot_policy
 
+
 class PolicyNetwork:
     def __init__(self, **params):
         super(PolicyNetwork, self).__init__()
@@ -29,11 +30,8 @@ class PolicyNetwork:
         return RLmodel
 
     def set_optimizer(self):
-        ## sets policy optimizer to Adam ##
         self.optimizer = torch.optim.Adam(
-                [
-                    {"params": self.controller.parameters()},
-                ],
+                [{"params": self.controller.parameters()}, ],
                 lr = self.learning_rate
         )
 
@@ -49,7 +47,7 @@ class PolicyNetwork:
         """
         Optimize controller parameters
         """
-        maxiter = self.training_iter #How many max iterations do we want
+        maxiter = self.training_iter  # How many max iterations do we want
         trials = 10 # for testing purposes only
 
         for trial in range(trials):
@@ -98,7 +96,7 @@ class PolicyNetwork:
             data=self.target_state
         )
         # predict next state
-        #TODO make prediction function
+        # TODO make prediction function
         predictions = self.calc_predictions(self.gp_model)
         # TODO make proper fucntion for action choosing
         action = self.choose_action(state, predictions)
@@ -112,15 +110,15 @@ class PolicyNetwork:
         return reward, mean_error
 
     def calc_predictions(gp_model):
-        #To be implmented
+        # To be implmented
         pass
 
     def choose_action(state, predictions):
         # claculate optimal action based on current state and predictions
         pass
 
-
     # yet to be implmented, planned to use for test out functions
+
     def train(self, train_data, num_epochs=1):
         for epoch in range(num_epochs):
             # Iterate over the training data
@@ -130,7 +128,6 @@ class PolicyNetwork:
                 reward = self.compute_reward(state)
 
                 # Optimize the policy based on the current data point
-                #self.optimize_policy(state, action, reward)
+                # self.optimize_policy(state, action, reward)
 
             print(f'Epoch {epoch + 1}/{num_epochs} completed.')
-

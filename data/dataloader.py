@@ -11,8 +11,9 @@ scaler_y = StandardScaler()
 min_max_scaler = MinMaxScaler()
 min_max_y_scaler = MinMaxScaler()
 
-X_names = ["theta1", "theta2", "xt2","fc1", "fc2", "fct2"]
+X_names = ["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]
 y_names = ["boom_x", "boom_y", "boom_angle"]
+
 
 def normalize_data(X, y, testing):
 
@@ -29,8 +30,10 @@ def normalize_data(X, y, testing):
 
     return X, y
 
+
 def load_data(path):
     return pd.read_csv(path)
+
 
 def load_data_directory(path):
     files = os.listdir(path)
@@ -46,7 +49,7 @@ def load_data_directory(path):
 
     combined_df = pd.concat(combined_df, ignore_index=True)
 
-    X,y = get_xy(combined_df)
+    X, y = get_xy(combined_df)
 
     def non_shuffling_train_test_split(X, y, test_size=0.2):
         i = int((1 - test_size) * X.shape[0]) + 1
@@ -54,7 +57,8 @@ def load_data_directory(path):
         y_train, y_test = np.split(y, [i])
         return X_train, X_test, y_train, y_test
 
-    X_train, X_test, y_train, y_test = non_shuffling_train_test_split(X, y, test_size=0.2)
+    X_train, X_test, y_train, y_test = \
+        non_shuffling_train_test_split(X, y, test_size=0.2)
 
     X_train, y_train = normalize_data(X_train.values,
                                       y_train.values,
@@ -66,13 +70,14 @@ def load_data_directory(path):
 
     return X_train, X_test, y_train, y_test
 
+
 def get_xy(data):
     try:
-        X = data[["theta1", "theta2", "xt2","fc1", "fc2", "fct2"]]
-        #X = data[["theta1", "theta2", "xt2"]]
-        y = data[["boom_x","boom_y"]]
+        X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
+        # X = data[["theta1", "theta2", "xt2"]]
+        y = data[["boom_x", "boom_y"]]
 
-        #Shift data so we predict next end-effector position
+        # Shift data so we predict next end-effector position
         y = y.shift(1)
         X = X.iloc[:-1]
         y = y.iloc[1:]
@@ -81,6 +86,7 @@ def get_xy(data):
 
     except Exception:
         raise AttributeError("Invalid data format")
+
 
 def load_training_data(train_path, normalize=True):
 
@@ -94,6 +100,7 @@ def load_training_data(train_path, normalize=True):
         y = torch.tensor(y.values, dtype=torch.double)
 
     return X, y
+
 
 def load_test_data(test_path, normalize=False):
     test_data = load_data(test_path)
@@ -125,7 +132,6 @@ def plot_X_train_vs_time(X, names):
         axs[feature_index].set_ylabel(f'{names[feature_index]}')
         axs[feature_index].set_title(f'{names[feature_index]} vs. Time')
 
-
     # Adjust layout for better spacing
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
@@ -135,8 +141,8 @@ def plot_X_train_vs_time(X, names):
 
 
 if __name__ == "__main__":
-    #train_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
-    #test_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
+    # train_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
+    # test_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
     train_path = "data/two-joint_trajectories_10Hz/trajectory2.csv"
     test_path = "data/two-joint_trajectories_10Hz/trajectory3.csv"
 

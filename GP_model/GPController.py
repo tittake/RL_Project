@@ -10,6 +10,7 @@ from GP_model.BatchIndependentMultiTaskGP \
     import BatchIndependentMultiTaskGPModel
 # from GP_model.MultiTaskGP import MultitaskGPModel
 
+
 class GPModel:
 
     def __init__(self, **params):
@@ -26,7 +27,6 @@ class GPModel:
 
         self.initialize_model()
 
-
     def initialize_model(self):
 
         self.X_train, self.y_train = \
@@ -37,7 +37,7 @@ class GPModel:
             dataloader.load_test_data(test_path = self.test_path,
                                       normalize = True)
 
-        #Use whole data directory instead
+        # Use whole data directory instead
         self.X_train, self.X_test, self.y_train, self.y_test = \
             dataloader.load_data_directory(self.data_directory)
 
@@ -65,7 +65,6 @@ class GPModel:
         else:
             self.load_model()
 
-
     def train(self):
 
         self.model.train()
@@ -90,7 +89,6 @@ class GPModel:
             optimizer.step()
             self.loss_history.append(loss.item())
 
-
         end_model_training = time.perf_counter()
         elapsed_model_training = end_model_training - start_model_training
         print("Training time: ", elapsed_model_training)
@@ -98,10 +96,9 @@ class GPModel:
         self.model.eval()
         self.likelihood.eval()
 
-        #Save trained model
+        # Save trained model
         # torch.save(self.model.state_dict(),
-                   # 'trained_models/two_joints_GP.pth')
-
+        #            'trained_models/two_joints_GP.pth')
 
     def plot_training_results(self):
         # Plot for training loss
@@ -122,7 +119,7 @@ class GPModel:
         for i, task in enumerate(tasks):
             # Make predictions for each task
             with torch.no_grad(), gpytorch.settings.fast_pred_var():
-                test_x = torch.linspace(0, 1, len(self.X_test[:,0]))
+                test_x = torch.linspace(0, 1, len(self.X_test[:, 0]))
                 predictions = self.likelihood(self.model(self.X_test))
                 mean = predictions.mean
                 lower, upper = predictions.confidence_region()
@@ -145,7 +142,6 @@ class GPModel:
             axes_tasks[i].set_title('Observed Values (Likelihood), ' + task)
 
         plt.show()
-
 
     def predict(self, X):
         with gpytorch.settings.fast_pred_var():  # torch.no_grad(),

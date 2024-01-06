@@ -16,6 +16,7 @@ class PolicyNetwork(nn.Module):
         action = self.tanh(self.fc3(x))
         return action
 
+
 class RLController:
     def __init__(self, **params):
         super(RLController, self).__init__()
@@ -32,5 +33,3 @@ class RLController:
 
         self.controller.predict = self.controller.forward
         return self.controller
-
-

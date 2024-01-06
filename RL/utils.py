@@ -5,11 +5,12 @@ import torch
 DEFAULT_DEVICE = torch.device("cuda:0")
 DEFAULT_DTYPE = torch.float32
 
+
 def get_tensor(data, device=DEFAULT_DEVICE, dtype=DEFAULT_DTYPE):
-        if isinstance(data, torch.Tensor):
-            return data.to(device)
-        else:
-            return torch.tensor(data, dtype=dtype, device=device)
+    if isinstance(data, torch.Tensor):
+        return data.to(device)
+    else:
+        return torch.tensor(data, dtype=dtype, device=device)
 
 
 def plot_policy(controller, model, trial=1):
