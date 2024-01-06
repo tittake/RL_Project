@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import yaml
 
-from training.GPController import GPModel
+from GP_model.GPController import GPModel
 from RL.controller import RLController
 from RL.policy import PolicyNetwork
 

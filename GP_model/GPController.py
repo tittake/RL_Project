@@ -7,9 +7,9 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 import data.dataloader as dataloader
-from training.ExactGP import ExactGPModel
-from training.BatchIndependentMultiTaskGP import BatchIndependentMultiTaskGPModel
-from training.MultiTaskGP import MultitaskGPModel
+from GP_model.ExactGP import ExactGPModel
+from GP_model.BatchIndependentMultiTaskGP import BatchIndependentMultiTaskGPModel
+from GP_model.MultiTaskGP import MultitaskGPModel
 
 class GPModel:
 

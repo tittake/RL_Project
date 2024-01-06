@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from RL.controller import RLController
 from data import dataloader
-from training.GPController import GPModel
+from GP_model.GPController import GPModel
 from RL.utils import get_tensor, plot_policy
 
 class PolicyNetwork:
