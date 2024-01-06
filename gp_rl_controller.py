@@ -22,8 +22,6 @@ def main(configuration):
 
     gpmodel.plot_training_results()
         
-    configuration.gp_model = gpmodel
-
     print(gpmodel.predict([0, 0, 0, 1, 1, 1]))
 
     policy_network = PolicyNetwork(**configuration)
