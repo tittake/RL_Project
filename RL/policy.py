@@ -5,16 +5,12 @@ import time
 import os
 import sys
 
-import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from RL.controller import RLController
 from data import dataloader
-from GP_model.GPController import GPModel
 from RL.utils import get_tensor, plot_policy
 
 class PolicyNetwork:

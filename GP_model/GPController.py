@@ -2,14 +2,13 @@ import time
 
 import gpytorch
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
-from torch.utils.data import DataLoader, TensorDataset
 
 import data.dataloader as dataloader
-from GP_model.ExactGP import ExactGPModel
-from GP_model.BatchIndependentMultiTaskGP import BatchIndependentMultiTaskGPModel
-from GP_model.MultiTaskGP import MultitaskGPModel
+# from GP_model.ExactGP import ExactGPModel
+from GP_model.BatchIndependentMultiTaskGP \
+    import BatchIndependentMultiTaskGPModel
+# from GP_model.MultiTaskGP import MultitaskGPModel
 
 class GPModel:
 
@@ -106,7 +105,7 @@ class GPModel:
 
     def plot_training_results(self):
         # Plot for training loss
-        fig_loss, ax_loss = plt.subplots(figsize=(6, 4))
+        _, ax_loss = plt.subplots(figsize=(6, 4))
         if not self.train_GP:
             self.loss_history = []
         ax_loss.plot(self.loss_history, label='Training Loss')
@@ -118,7 +117,7 @@ class GPModel:
 
         # Plot for tasks
         tasks = ["x_boom", "y_boom"]
-        fig_tasks, axes_tasks = plt.subplots(1, len(tasks), figsize=(12, 4))
+        _, axes_tasks = plt.subplots(1, len(tasks), figsize=(12, 4))
 
         for i, task in enumerate(tasks):
             # Make predictions for each task

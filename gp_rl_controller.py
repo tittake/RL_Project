@@ -1,9 +1,6 @@
-import numpy as np
-import torch
 import yaml
 
 from GP_model.GPController import GPModel
-from RL.controller import RLController
 from RL.policy import PolicyNetwork
 
 #Initial RL testing values
@@ -14,8 +11,8 @@ from RL.policy import PolicyNetwork
 def get_configs():
     return
 
-"""Collective controller for GP model and RL controller"""
 def main(configuration):
+    """Collective controller for GP model and RL controller"""
 
     #Initialize and train model or load pre-trained model
     gpmodel = GPModel(**configuration)
@@ -26,10 +23,11 @@ def main(configuration):
 
     policy_network = PolicyNetwork(**configuration)
 
-    #policy_network.optimize_policy()
+    # policy_network.optimize_policy()
 
-#TODO: Separate GP and RL configs
 if __name__ == "__main__":
+
+    #TODO: Separate GP and RL configs
 
     with open("configuration.yaml") as configuration_file:
 
