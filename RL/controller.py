@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import numpy as np
 
 
 class PolicyNetwork(nn.Module):
@@ -17,6 +15,7 @@ class PolicyNetwork(nn.Module):
         x = torch.relu(self.fc2(x))
         action = self.tanh(self.fc3(x))
         return action
+
 
 class RLController:
     def __init__(self, **params):
@@ -34,5 +33,3 @@ class RLController:
 
         self.controller.predict = self.controller.forward
         return self.controller
-
-
