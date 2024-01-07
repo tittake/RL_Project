@@ -48,7 +48,7 @@ class PolicyNetwork:
         """
         Optimize controller parameters
         """
-        maxiter = self.training_iter #How many max iterations do we want
+        maxiter = self.training_iter
         trials = self.trials
         
         all_optim_data = {"all_optimizer_data": []}
@@ -58,6 +58,12 @@ class PolicyNetwork:
             initial_controller = deepcopy(self.controller)
             self.set_optimizer()
             t_start = time.perf_counter()
+            # TODO: do we need tensors?
+            self.randTensor = get_tensor(
+                data=torch.randn((self.state_dim, self.horizon)),
+                device=self.device,
+                dtype=self.dtype,
+            )
             # reset and set optimizer over trials and  calculate and plot reward and
             # mean error over the amount of max_iterations
             optimInfo = {"loss": [], "time": []}
@@ -120,7 +126,7 @@ class PolicyNetwork:
             next_state = (
                 state
                 + predictions.mean
-                + torch.mul(predictions.stddev, self.randTensor[:, :, i]) # What is this
+                + torch.mul(predictions.stddev, self.randTensor[:, :, i])
             )
             # get reward
             rewards = self.compute_reward(
