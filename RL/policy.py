@@ -1,17 +1,16 @@
 #! C:\Users\vaino\robot_projectWork\RL_Project\RLProject\Scripts\python.exe
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import numpy as np
 from copy import deepcopy
 import time
+import os
 import sys
+
 import os 
 
 from data import dataloader
 from RL.controller import RLController
 from RL.utils import get_tensor, plot_policy
+
 from training.GPController import GPModel
 
 class PolicyNetwork:
@@ -33,20 +32,19 @@ class PolicyNetwork:
         controller = RLController(**self.controller_params)
         RLmodel = controller.init_controller()
         return RLmodel
-    
+
     def set_optimizer(self):
-        ## sets policy optimizer to Adam ##
         self.optimizer = torch.optim.Adam(
-                [
-                    {"params": self.controller.parameters()},
-                ],
+                [{"params": self.controller.parameters()}, ],
                 lr = self.learning_rate
         )
+
     
     def optimize_policy(self):
         """
         Optimize controller parameters
         """
+
         maxiter = self.training_iter
         trials = self.trials
         
@@ -56,6 +54,7 @@ class PolicyNetwork:
             self.reset()
             initial_controller = deepcopy(self.controller)
             self.set_optimizer()
+
             t_start = time.perf_counter()
             # TODO: do we need tensors?
             self.randTensor = get_tensor(
@@ -106,10 +105,12 @@ class PolicyNetwork:
             
             all_optim_data["all_optimizer_data"].append(trial_save_info)
 
+
     def calculate_step_loss(self):
         """Calculate predictions and reward for one step and 
             return results
         """
+
         gpmodel = self.gpmodel
         state = deepcopy(self.y_values) # Boom location
         t1 = time.perf_counter() # time for the loss calulations 
@@ -186,4 +187,3 @@ class PolicyNetwork:
         reward = -distance.item()
 
         return reward
-

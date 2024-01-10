@@ -1,43 +1,39 @@
-from training.GPController import GPModel
-from RL.controller import RLController
-import numpy as np
-from config import configurations
-from RL.policy import PolicyNetwork
-import argparse
-import torch
+import yaml
 
-#Initial RL testing values
-#x_boom = 2.1 y_boom = 3.5
-#x_boom = 3.0 y_boom = 2.4
+from GP_model.GPController import GPModel
+from RL.policy import PolicyNetwork
+
+# Initial RL testing values
+# x_boom = 2.1 y_boom = 3.5
+# x_boom = 3.0 y_boom = 2.4
 
 
 def get_configs():
     return
 
-"""Collective controller for GP model and RL controller"""
-def main(opts):
 
-    #Initialize and train model or load pre-trained model
-    gpmodel = GPModel(**vars(opts))
+def main(configuration):
+    """Collective controller for GP model and RL controller"""
+
+    # Initialize and train model or load pre-trained model
+    gpmodel = GPModel(**configuration)
 
     gpmodel.plot_training_results()
-        
-    opts.gp_model = gpmodel
 
-    policy_network = PolicyNetwork(**vars(opts))
-    #policy_network.optimize_policy()
-    
+    print(gpmodel.predict([0, 0, 0, 1, 1, 1]))
 
-    #config = get_configs(opts)
+    policy_network = PolicyNetwork(**configuration)
 
-#TODO: Separate GP and RL configs
+    # policy_network.optimize_policy()
+
+
 if __name__ == "__main__":
-    opts = argparse.Namespace()
-    opts.train_path = "data/training1_simple_10Hz.csv"
-    opts.test_path = "data/testing1_simple_10Hz.csv"
-    opts.num_tasks = 2
-    opts.ard_num_dims =  6
-    opts.training_iter = 100
-    opts.train_GP = True
-    opts.model_path = 'trained_models/first_joint_GP.pth'
-    main(opts)
+
+    # TODO: Separate GP and RL configs
+
+    with open("configuration.yaml") as configuration_file:
+
+        configuration = yaml.load(configuration_file,
+                                  Loader = yaml.Loader)
+
+    main(configuration)

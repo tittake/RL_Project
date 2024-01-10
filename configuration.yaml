@@ -1,0 +1,8 @@
+train_path: "data/two-joint_trajectories_10Hz/trajectory2.csv"
+test_path: "data/two-joint_trajectories_10Hz/trajectory6.csv" 
+data_directory: "data/two-joint_trajectories_10Hz"
+model_path: "trained_models/two_joints_GP.pth"
+num_tasks: 2
+ard_num_dims: 6
+training_iter: 150
+train_GP: True
