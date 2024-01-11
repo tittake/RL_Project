@@ -4,6 +4,7 @@ from copy import deepcopy
 import time
 import os
 import sys
+import torch
 
 import os 
 
@@ -11,7 +12,7 @@ from data import dataloader
 from RL.controller import RLController
 from RL.utils import get_tensor, plot_policy
 
-from training.GPController import GPModel
+from GP_Model.GPController import GPModel
 
 class PolicyNetwork:
     def __init__(self, **params):
@@ -19,7 +20,7 @@ class PolicyNetwork:
         for key, value in params.items():
             setattr(self, key, value)
 
-        # Load training data, TODO: take this into use
+        # Load training data
         (
             self.x_values, 
             self.y_values,
@@ -174,7 +175,7 @@ class PolicyNetwork:
         self.obs_torch = initial_state
         print(
             "Reset complete: observation[0-10]: {}..., goal: {}".format(
-                self.obs_torch[0:10], self.target_state
+                self.obs_torch, self.target_state
             )
         )
         return self.obs_torch
