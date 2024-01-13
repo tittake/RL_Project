@@ -5,6 +5,7 @@ import time
 import os
 import sys
 import torch
+import numpy as np
 
 import os 
 
@@ -28,11 +29,17 @@ class PolicyNetwork:
         
         # test_data = dataloader.load_test_data(self.test_path)
         self.controller = self.get_controller()
+        self.gp_model = self.get_gp_model()
 
     def get_controller(self):
         controller = RLController(**self.controller_params)
         RLmodel = controller.init_controller()
         return RLmodel
+    
+    def get_gp_model(self):
+        model = GPModel()
+        model.initialize_model()
+        return model
 
     def set_optimizer(self):
         self.optimizer = torch.optim.Adam(
@@ -111,30 +118,25 @@ class PolicyNetwork:
         """Calculate predictions and reward for one step and 
             return results
         """
-
-        gpmodel = self.gpmodel
         state = deepcopy(self.y_values) # Boom location
         t1 = time.perf_counter() # time for the loss calulations 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        
-        for i in range(self.horizon -1 ):
-            X = [[0,0,0,1000,1000,1000]]
-            X = torch.tensor(X, dtype=torch.double)
-            X = X.to(device, dtype=torch.float64)
-            predictions = gpmodel.predict(X)
-            print(predictions.mean)
-            # predict next state TODO
-            next_state = (
-                state
-                + predictions.mean
-                + torch.mul(predictions.stddev, self.randTensor[:, :, i])
-            )
-            # get reward
-            rewards = self.compute_reward(
-                state, target_state=next_state
-            )
-            rew = rew + rewards
-            state = next_state
+        X = [[0,0,0,1000,1000,1000]]
+        X = torch.tensor(X, dtype=torch.double)
+        X = X.to(device, dtype=torch.float64)
+        predictions = self.gp_model.predict(X)
+        print(predictions.mean)
+        # predict next state
+        next_state = (
+            state
+            + predictions.mean
+        )
+        # get reward
+        reward = self.compute_reward(
+            state, target_state=next_state
+        )
+        rew = rew + reward
+        state = next_state
         
         mean_error = torch.mean(state - self.target_state[0])
         t_elapsed = time.perf_counter() - t1
@@ -146,25 +148,8 @@ class PolicyNetwork:
         self.done = False
 
         # generate init/goal states TODO: discuss on how we should implement these functions
-        initial_state = generate_init_state(
-            is_det=self.is_deterministic_init,
-            n_trajs=self.n_trajectories,
-            initial_distr=self.initial_distr,
-            x_lb=self.x_lb,
-            x_ub=self.x_ub,
-            state_dim=self.state_dim,
-            default_init_state=self.init_state,
-            device=self.device,
-            dtype=self.dtype,
-        )
-        self.target_state = generate_goal(
-            is_det=self.is_deterministic_goal,
-            goal_distr=self.goal_distr,
-            x_lb=self.x_lb,
-            x_ub=self.x_ub,
-            state_dim=self.state_dim,
-            default_target_state=self.target_state,
-        )
+        initial_state = np.array([-0.5, 0])
+        self.target_state = np.array()
 
         self.state = torch.zeros(
             (self.horizon, self.state_dim), device=self.device, dtype=self.dtype
