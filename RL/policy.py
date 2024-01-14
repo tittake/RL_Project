@@ -30,6 +30,10 @@ class PolicyNetwork:
         # test_data = dataloader.load_test_data(self.test_path)
         self.controller = self.get_controller()
         self.gp_model = self.get_gp_model()
+        self.horizon = round(self.Tf / self.dt)
+        
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.dtype = torch.double
 
     def get_controller(self):
         controller = RLController(**self.controller_params)
@@ -62,14 +66,7 @@ class PolicyNetwork:
             self.reset()
             initial_controller = deepcopy(self.controller)
             self.set_optimizer()
-
             t_start = time.perf_counter()
-            # TODO: do we need tensors?
-            self.randTensor = get_tensor(
-                data=torch.randn((self.state_dim, self.horizon)),
-                device=self.device,
-                dtype=self.dtype,
-            )
             # reset and set optimizer over trials and  calculate and plot reward and
             # mean error over the amount of max_iterations
             optimInfo = {"loss": [], "time": []}
@@ -77,77 +74,77 @@ class PolicyNetwork:
                 self.optimizer.zero_grad()
                 reward, mean_error = self.calculate_step_loss()
                 loss = -reward
-                loss.backward() #TODO
+                #loss.backward()
                 print(
                     "Optimize Policy: Iter {}/{} - Loss: {:.3f}".format(
-                        i + 1, maxiter, loss.item()
+                        i + 1, maxiter, loss
                     )
                 )
                 print("Mean error {:.5f}".format(mean_error))
                 self.optimizer.step()
                 # loss counter
                 t2 = time.perf_counter() - t_start
-                optimInfo["loss"].append(loss.item())
+                optimInfo["loss"].append(loss)
                 optimInfo["time"].append(t2)
                 
 
             # plot function, TODO some modifictaions that plots are correct
-            plot_policy(
-                controller=self.controller,
-                model=self.gp_model,
-                trial=trial + 1,
-                reward=reward
-            )
+            # plot_policy()
             print(
                 "Controller's optimization: reward=%.3f."
-                % (loss.item())
+                % (loss)
             )
             
             trial_save_info = {
                 "optimInfo": optimInfo,
                 "controller initial": initial_controller,
                 "controller final": deepcopy(self.controller),
-                "mean_states": self.mean_states, #Don't exist yet
-                "std_states": self.std_states, # Don't exist yet
+                "mean error": mean_error,
+                "Loss": loss,
+                "Trial": trial,
             }
             
             all_optim_data["all_optimizer_data"].append(trial_save_info)
+        
+        # TODO: better printing function
+        print("Optimized data: ", all_optim_data)
 
 
     def calculate_step_loss(self):
         """Calculate predictions and reward for one step and 
             return results
         """
-        state = deepcopy(self.y_values) # Boom location
+        state = deepcopy(self.x_values, self.y_values) # Boom location
         t1 = time.perf_counter() # time for the loss calulations 
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        X = [[0,0,0,1000,1000,1000]]
-        X = torch.tensor(X, dtype=torch.double)
-        X = X.to(device, dtype=torch.float64)
-        predictions = self.gp_model.predict(X)
-        print(predictions.mean)
-        # predict next state
-        next_state = (
-            state
-            + predictions.mean
-        )
-        # get reward
-        reward = self.compute_reward(
-            state, target_state=next_state
-        )
-        rew = rew + reward
-        state = next_state
+        rewards = 0
+        counter = 1
+        while counter <= self.horizon:
+            X = [[0,0,0,1000,1000,1000]]
+            X = torch.tensor(X, dtype=torch.double)
+            X = X.to(self.device, dtype=torch.float64)
+            predictions = self.gp_model.predict(X)
+            print(predictions.mean)
+            # predict next state
+            next_state = (
+                state
+                + predictions.mean
+            )
+            # get reward
+            reward = self.compute_reward(
+                state, target_state=next_state
+            )
+            rewards = rewards + reward
+            state = next_state
+            counter += 1
         
         mean_error = torch.mean(state - self.target_state[0])
         t_elapsed = time.perf_counter() - t1
         print(f"Predictions completed, elapsed time: {t_elapsed:.2f}s")
-        return rew, mean_error
+        return rewards, mean_error
     
     
     def reset(self):
-        self.done = False
-
-        # generate init/goal states TODO: discuss on how we should implement these functions
+        # generate init/goal states
         initial_state = np.array([-0.5, 0])
         self.target_state = np.array()
 
@@ -166,7 +163,7 @@ class PolicyNetwork:
         return self.obs_torch
 
     
-    def compute_reward(state, target_state):
+    def compute_reward(self, state, target_state):
         # Compute Euclidean distance based reward
         distance = torch.norm(state - target_state)
 

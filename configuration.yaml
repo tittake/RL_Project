@@ -6,3 +6,9 @@ num_tasks: 2
 ard_num_dims: 6
 training_iter: 150
 train_GP: True
+RL:
+  learning_rate: 0.01,
+  state_dim: 1,
+  control_dim: 1,
+  Tf: 30,
+  dt: 0.1, 

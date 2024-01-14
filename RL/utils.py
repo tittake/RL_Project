@@ -25,9 +25,3 @@ def plot_policy(controller, model, trial=1):
     ax.set_ylabel("u")
     ax.set_title(f"Policy Plot trial {trial}")
     ax.plot(inputs, actions)
-    """ plt.savefig(
-        os.path.join(policy_log_dir,
-                     "{}_policy_plot_{}.png".format(joint, trial)),
-        dpi=100,
-    ) """
-    print("policy plot saved")
