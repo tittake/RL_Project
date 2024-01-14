@@ -146,7 +146,7 @@ class PolicyNetwork:
     def reset(self):
         # generate init/goal states
         initial_state = np.array([-0.5, 0])
-        self.target_state = np.array()
+        self.target_state = np.array(self.x_values, self.y_values)
 
         self.state = torch.zeros(
             (self.horizon, self.state_dim), device=self.device, dtype=self.dtype
