@@ -12,8 +12,7 @@ import os
 from data import dataloader
 from RL.controller import RLController
 from RL.utils import get_tensor, plot_policy
-
-from GP_Model.GPController import GPModel
+from GP_model.GPController import GPModel
 
 class PolicyNetwork:
     def __init__(self, **params):
