@@ -55,10 +55,16 @@ def main():
 
     function(**arguments)
 
-def train_GP(data_path, iterations, model_path, model_class):
+def train_GP(data_path:   str,
+             iterations:  int,
+             model_path:  str,
+             model_class: str):
+
     pass # TODO
 
-def test_GP(data_path, plot):
+def test_GP(data_path: str,
+            plot:      bool):
+
     pass # TODO
 
 if __name__ == "__main__":
