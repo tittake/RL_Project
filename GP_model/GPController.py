@@ -101,6 +101,7 @@ class GPModel:
         #            'trained_models/two_joints_GP.pth')
 
     def plot_training_results(self):
+        return
         # Plot for training loss
         _, ax_loss = plt.subplots(figsize=(6, 4))
         if not self.train_GP:

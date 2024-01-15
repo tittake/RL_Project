@@ -75,7 +75,7 @@ def get_xy(data):
     try:
         X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
         # X = data[["theta1", "theta2", "xt2"]]
-        y = data[["boom_x", "boom_y"]]
+        y = data[["boom_x", "boom_y", "theta1", "theta2", "xt2"]]
 
         # Shift data so we predict next end-effector position
         y = y.shift(1)

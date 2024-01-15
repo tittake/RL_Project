@@ -20,11 +20,12 @@ def main(configuration):
 
     gpmodel.plot_training_results()
 
-    print(gpmodel.predict([0, 0, 0, 1, 1, 1]))
+    # print(gpmodel.predict([0, 0, 0, 1, 1, 1]))
+    configuration["gp_model"] = gpmodel
 
     policy_network = PolicyNetwork(**configuration)
 
-    # policy_network.optimize_policy()
+    policy_network.optimize_policy()
 
 
 if __name__ == "__main__":
@@ -34,6 +35,6 @@ if __name__ == "__main__":
     with open("configuration.yaml") as configuration_file:
 
         configuration = yaml.load(configuration_file,
-                                  Loader = yaml.Loader)
+                                  Loader = yaml.SafeLoader)
 
     main(configuration)

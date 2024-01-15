@@ -7,7 +7,8 @@ import sys
 import torch
 import numpy as np
 
-import os 
+import os
+from RL.configs import get_controller_params 
 
 from data import dataloader
 from RL.controller import RLController
@@ -27,9 +28,10 @@ class PolicyNetwork:
         ) = dataloader.load_training_data(self.train_path)
         
         # test_data = dataloader.load_test_data(self.test_path)
+        self.controller_params = get_controller_params()
         self.controller = self.get_controller()
-        self.gp_model = self.get_gp_model()
-        self.horizon = round(self.Tf / self.dt)
+        # self.gp_model = self.get_gp_model(**params)
+        self.horizon = round(float(self.Tf) / float(self.dt))
         
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.dtype = torch.double
@@ -39,8 +41,8 @@ class PolicyNetwork:
         RLmodel = controller.init_controller()
         return RLmodel
     
-    def get_gp_model(self):
-        model = GPModel()
+    def get_gp_model(self, **params):
+        model = GPModel(**params)
         model.initialize_model()
         return model
 
@@ -56,7 +58,7 @@ class PolicyNetwork:
         Optimize controller parameters
         """
 
-        maxiter = self.training_iter
+        maxiter = self.rl_training_iter
         trials = self.trials
         
         all_optim_data = {"all_optimizer_data": []}
@@ -73,7 +75,7 @@ class PolicyNetwork:
                 self.optimizer.zero_grad()
                 reward, mean_error = self.calculate_step_loss()
                 loss = -reward
-                #loss.backward()
+                loss.backward()
                 print(
                     "Optimize Policy: Iter {}/{} - Loss: {:.3f}".format(
                         i + 1, maxiter, loss
@@ -113,30 +115,36 @@ class PolicyNetwork:
         """Calculate predictions and reward for one step and 
             return results
         """
-        state = deepcopy(self.x_values, self.y_values) # Boom location
+        # state = np.concatenate([self.x_values.numpy(), self.y_values.numpy()], axis=1) # Current boom location
+        # print("x size: ", self.x_values.shape)
+        # print("y size: ",self.y_values.shape)
+        # exit ()
         t1 = time.perf_counter() # time for the loss calulations 
         rewards = 0
         counter = 1
+        print("STATE: ", self.joint_state)
         while counter <= self.horizon:
-            X = [[0,0,0,1000,1000,1000]]
-            X = torch.tensor(X, dtype=torch.double)
-            X = X.to(self.device, dtype=torch.float64)
-            predictions = self.gp_model.predict(X)
-            print(predictions.mean)
+            action = self.controller(self.joint_state)
+            print("ACTION: ", action)
+            inputs = torch.tensor([np.concatenate([self.joint_state.detach().numpy(), action.detach().numpy()]).tolist()])
+            print("INPUTS: ", inputs)
+            predictions = self.gp_model.predict(inputs)
+            print(predictions)
             # predict next state
-            next_state = (
-                state
-                + predictions.mean
-            )
+            self.ee_location = predictions.mean[0, 0:2]
+            self.joint_state = predictions.mean[0, 3:]
+            print("EE: ", self.ee_location)
+            print("JOINTTI: ", self.joint_state)
             # get reward
             reward = self.compute_reward(
-                state, target_state=next_state
+                self.ee_location, target_state=self.target_ee_location
             )
-            rewards = rewards + reward
-            state = next_state
+            print("Reward: ", reward)
+            rewards += reward
             counter += 1
         
-        mean_error = torch.mean(state - self.target_state[0])
+        # mean_error = torch.mean(self.joint_state - self.target_ee_location)
+        mean_error = 0
         t_elapsed = time.perf_counter() - t1
         print(f"Predictions completed, elapsed time: {t_elapsed:.2f}s")
         return rewards, mean_error
@@ -144,22 +152,21 @@ class PolicyNetwork:
     
     def reset(self):
         # generate init/goal states
-        initial_state = np.array([-0.5, 0])
-        self.target_state = np.array(self.x_values, self.y_values)
+        self.initial_joint_state = torch.tensor([16.26891594, 23.19595227, -0.78539816], dtype=self.dtype)
+        self.initial_ee_location = torch.tensor([2.86881573603111, 2.20217971813513], dtype=self.dtype)
+        self.target_ee_location = torch.tensor([3.15479619153404, 0.948787661508362], dtype=self.dtype)
+        # self.target_ee_location = np.concatenate([self.x_values.numpy(), self.y_values.numpy()], axis=1)
+        
+        # self.state = torch.zeros((self.horizon, self.state_dim), device=self.device, dtype=self.dtype)
+        self.joint_state = self.initial_joint_state
+        self.ee_location = deepcopy(self.initial_ee_location)
+        # self.reward = torch.zeros((self.horizon), device=self.device, dtype=self.dtype)
 
-        self.state = torch.zeros(
-            (self.horizon, self.state_dim), device=self.device, dtype=self.dtype
-        )
-        self.state = initial_state
-        self.reward = torch.zeros((self.horizon), device=self.device, dtype=self.dtype)
-
-        self.obs_torch = initial_state
         print(
-            "Reset complete: observation[0-10]: {}..., goal: {}".format(
-                self.obs_torch, self.target_state
+            "Reset complete: {}..., goal: {}".format(
+                self.joint_state, self.target_ee_location
             )
         )
-        return self.obs_torch
 
     
     def compute_reward(self, state, target_state):

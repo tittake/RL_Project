@@ -8,10 +8,13 @@ class RLController:
         super(RLController, self).__init__()
         for key, value in params.items():
             setattr(self, key, value)
+            
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.dtype = torch.double
 
-    def init_linear_controller(self):
-        print("Initializing linear controller")
-        self.NNlayers = [64, 64]
+    def init_controller(self):
+        print("Initializing controller")
+        self.NNlayers = [3, 9, 3]
         self.controller = torch.nn.Sequential(
             torch.nn.Linear(
                 self.state_dim,
