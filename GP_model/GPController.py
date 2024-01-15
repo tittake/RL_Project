@@ -46,8 +46,6 @@ class GPModel:
 
         self.model = \
             BatchIndependentMultiTaskGPModel(
-                    X_train      = self.X_train,
-                    y_train      = self.y_train,
                     likelihood   = self.likelihood,
                     num_tasks    = output_feature_count,
                     ard_num_dims = input_feature_count,
@@ -65,6 +63,10 @@ class GPModel:
 
         self.X_train = self.X_train.to(self.device, dtype=torch.float64)
         self.y_train = self.y_train.to(self.device, dtype=torch.float64)
+
+        self.model.set_train_data(inputs  = self.X_train,
+                                  targets = self.y_train,
+                                  strict  = False)
 
         self.model.train()
         self.likelihood.train()

@@ -4,10 +4,10 @@ import torch
 
 class BatchIndependentMultiTaskGPModel(gpytorch.models.ExactGP):
 
-    def __init__(self, X_train, y_train, likelihood, num_tasks, ard_num_dims):
+    def __init__(self, likelihood, num_tasks, ard_num_dims):
 
-        super().__init__(train_inputs  = X_train,
-                         train_targets = y_train,
+        super().__init__(train_inputs  = None,
+                         train_targets = None,
                          likelihood    = likelihood)
 
         self.mean_module = gpytorch.means.ConstantMean(

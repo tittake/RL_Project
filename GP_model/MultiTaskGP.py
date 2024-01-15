@@ -3,9 +3,11 @@ import gpytorch
 
 class MultitaskGPModel(gpytorch.models.ExactGP):
 
-    def __init__(self, train_x, train_y, likelihood, num_tasks):
+    def __init__(self, likelihood, num_tasks):
 
-        super(MultitaskGPModel, self).__init__(train_x, train_y, likelihood)
+        super().__init__(train_inputs  = None,
+                         train_targets = None,
+                         likelihood    = likelihood)
 
         self.mean_module = gpytorch.means.MultitaskMean(
             gpytorch.means.ConstantMean(), num_tasks)
