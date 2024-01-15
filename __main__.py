@@ -1,10 +1,13 @@
 from argparse import ArgumentParser
 
+# TODO migrate to package relative imports to be able to run as a module
+from GP_model.GPController import GPModel
+
 def main():
 
     arguments_parser = ArgumentParser()
 
-    subparsers = arguments_parser.add_subparsers()
+    subparsers = arguments_parser.add_subparsers(required=True)
 
     GP_parser = subparsers.add_parser("GP")
 
@@ -26,10 +29,7 @@ def main():
     GP_training_parser.add_argument("--model_path",
                                     type = str)
 
-    GP_model_class_choices = ("BatchIndependentMultiTaskGP",
-                              "ExactGP",
-                              "GPController",
-                              "MultiTaskGP")
+    GP_model_class_choices = ("BatchIndependentMultiTaskGP", "MultiTaskGP")
 
     GP_training_parser.add_argument("--model_class",
                                     type    = str,
@@ -58,14 +58,21 @@ def main():
 def train_GP(data_path:   str,
              iterations:  int,
              model_path:  str,
-             model_class: str):
+             model_class: str,
+             plot_loss:   bool):
 
-    pass # TODO
+    gp_model = GPModel(training_data_path = data_path)
 
-def test_GP(data_path: str,
-            plot:      bool):
+    gp_model.train(iterations=iterations, plot_loss=plot_loss)
 
-    pass # TODO
+    # TODO what if user wants to test the model just trained without saving it?
+
+def test_GP(model_path: str,
+            data_path:  str,
+            plot:       bool):
+
+    pass # TODO instantiate model
+    # is this even possible for a saved model without providing training data?
 
 if __name__ == "__main__":
     main()

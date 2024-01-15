@@ -1,7 +1,7 @@
 import yaml
 
 from GP_model.GPController import GPModel
-from RL.policy import PolicyNetwork
+# from RL.policy import PolicyNetwork
 
 # Initial RL testing values
 # x_boom = 2.1 y_boom = 3.5
@@ -15,14 +15,16 @@ def get_configs():
 def main(configuration):
     """Collective controller for GP model and RL controller"""
 
-    # Initialize and train model or load pre-trained model
-    gpmodel = GPModel(**configuration)
+    gp_model = GPModel(training_data_path = configuration["data_directory"])
 
-    gpmodel.plot_training_results()
+    gp_model.train(iterations=configuration["training_iter"], plot_loss=True)
 
-    print(gpmodel.predict([0, 0, 0, 1, 1, 1]))
+    gp_model.test(data_path = configuration["test_path"], plot=True)
 
-    policy_network = PolicyNetwork(**configuration)
+    from torch import tensor
+    print(gp_model.predict(tensor([[0, 0, 0, 1, 1, 1]])).mean)
+
+    # policy_network = PolicyNetwork(**configuration)
 
     # policy_network.optimize_policy()
 
