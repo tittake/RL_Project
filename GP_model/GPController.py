@@ -29,16 +29,16 @@ class GPModel:
 
     def initialize_model(self):
 
-        self.X_train, self.y_train = \
+        self.X_train, self.y_train, self.X_scaler, self.y_scaler = \
             dataloader.load_training_data(train_path = self.train_path,
                                           normalize  = True)
 
-        self.X_test, self.y_test = \
+        self.X_test, self.y_test, self.X_scaler, self.y_scaler = \
             dataloader.load_test_data(test_path = self.test_path,
                                       normalize = True)
 
         # Use whole data directory instead
-        self.X_train, self.X_test, self.y_train, self.y_test = \
+        self.X_train, self.X_test, self.y_train, self.y_test, self.X_scaler, self.y_scaler = \
             dataloader.load_data_directory(self.data_directory)
 
         self.likelihood = \
@@ -146,7 +146,9 @@ class GPModel:
 
     def predict(self, X):
         with gpytorch.settings.fast_pred_var():  # torch.no_grad(),
+            X = X.to(self.device, dtype=torch.float64)
             observed_pred = self.likelihood(self.model(X))
+            
         return observed_pred
 
     def load_model(self):

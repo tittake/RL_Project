@@ -2,6 +2,7 @@ import yaml
 
 from GP_model.GPController import GPModel
 from RL.policy import PolicyNetwork
+from data import dataloader
 
 # Initial RL testing values
 # x_boom = 2.1 y_boom = 3.5
@@ -20,8 +21,14 @@ def main(configuration):
 
     gpmodel.plot_training_results()
 
+
     # print(gpmodel.predict([0, 0, 0, 1, 1, 1]))
     configuration["gp_model"] = gpmodel
+    
+    X_scaler, y_scaler = dataloader.get_scaler()
+    configuration["X_scaler"] = gpmodel.X_scaler
+    configuration["y_scaler"] = gpmodel.y_scaler
+    print(gpmodel.X_scaler, gpmodel.y_scaler)
 
     policy_network = PolicyNetwork(**configuration)
 
