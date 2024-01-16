@@ -98,7 +98,7 @@ class PolicyNetwork:
 
                 optimizer.zero_grad()
 
-                reward, mean_error = self.calculate_step_loss()
+                reward = self.calculate_step_loss()
 
                 loss = -reward
 
@@ -109,8 +109,6 @@ class PolicyNetwork:
 
                 print(f"Optimize Policy: iteration {i + 1} "
                       f"/ {maxiter} - Loss: {loss.item():.3f}")
-
-                print("Mean error {:.5f}".format(mean_error))
 
                 print()
 
@@ -134,7 +132,6 @@ class PolicyNetwork:
                 "optimInfo": optimInfo,
                 "controller initial": initial_controller,
                 "controller final": deepcopy(self.controller),
-                "mean error": mean_error,
                 "Loss": loss,
                 "Trial": trial,
             }
@@ -157,7 +154,7 @@ class PolicyNetwork:
         plt.show()
 
     def calculate_step_loss(self):
-        """calculate and return reward & mean error for a single time step"""
+        """calculate and return reward for a single time step"""
 
         t1 = time.perf_counter() # time for the loss calulations
 
@@ -188,18 +185,15 @@ class PolicyNetwork:
 
         reward = \
             -torch.cdist(torch.unsqueeze(self.ee_location, dim=0),
-                         torch.unsqueeze(self.target_ee_location, dim=0)
-                         )
+                         torch.unsqueeze(self.target_ee_location, dim=0))
 
         counter += 1
-
-        mean_error = torch.norm(self.ee_location - self.target_ee_location)
 
         t_elapsed = time.perf_counter() - t1
 
         print(f"Predictions completed, elapsed time: {t_elapsed:.2f}s")
 
-        return reward, mean_error
+        return reward
 
     def reset(self):
         # generate init/goal states
