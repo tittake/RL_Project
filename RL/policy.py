@@ -106,6 +106,8 @@ class PolicyNetwork:
 
                 print(f"Reward: {reward}")
                 print(f"Loss: {loss.item()}")
+                print(f"Curr ee location: {self.ee_location}")
+                print(f"Goal ee location: {self.target_ee_location}")
 
                 loss.backward()
 
