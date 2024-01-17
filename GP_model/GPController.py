@@ -29,16 +29,16 @@ class GPModel:
 
     def initialize_model(self):
 
-        self.X_train, self.y_train, self.X_scaler, self.y_scaler = \
+        self.X_train, self.y_train, self.joint_scaler, self.torque_scaler, self.ee_location_scaler = \
             dataloader.load_training_data(train_path = self.train_path,
                                           normalize  = True)
 
-        self.X_test, self.y_test, self.X_scaler, self.y_scaler = \
+        self.X_test, self.y_test, self.joint_scaler, self.torque_scaler, self.ee_location_scaler = \
             dataloader.load_test_data(test_path = self.test_path,
                                       normalize = True)
 
         # Use whole data directory instead
-        self.X_train, self.X_test, self.y_train, self.y_test, self.X_scaler, self.y_scaler = \
+        self.X_train, self.X_test, self.y_train, self.y_test, self.joint_scaler, self.torque_scaler, self.ee_location_scaler = \
             dataloader.load_data_directory(self.data_directory)
 
         self.likelihood = \
@@ -101,7 +101,7 @@ class GPModel:
         #            'trained_models/two_joints_GP.pth')
 
     def plot_training_results(self):
-        return
+        #return
         # Plot for training loss
         _, ax_loss = plt.subplots(figsize=(6, 4))
         if not self.train_GP:

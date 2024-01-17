@@ -24,8 +24,9 @@ class PolicyNetwork:
         (
             self.x_values,
             self.y_values,
-            self.X_scaler,
-            self.y_scaler
+            self.joint_scaler,
+            self.torque_scaler,
+            self.ee_location_scaler
         ) = dataloader.load_training_data(self.train_path)
 
         # test_data = dataloader.load_test_data(self.test_path)
@@ -34,8 +35,9 @@ class PolicyNetwork:
             self.y_values,
             self.x_test_values,
             self.y_test_values,
-            self.X_scaler,
-            self.y_scaler
+            self.joint_scaler,
+            self.torque_scaler,
+            self.ee_location_scaler
         ) = dataloader.load_data_directory(self.data_directory)
 
         self.device = torch.device("cuda:0"
@@ -225,13 +227,13 @@ class PolicyNetwork:
                          dtype=self.dtype)
 
         self.initial_joint_state = \
-            self.X_scaler.fit_transform(initial_situation)[0, 0:3]
-
+            self.joint_scaler.transform(self.initial_joint_state.view(1, -1).numpy())[0,:]
+        
         self.initial_ee_location = \
-            self.y_scaler.fit_transform(self.initial_ee_location)
+            self.ee_location_scaler.transform(self.initial_ee_location)
 
         self.target_ee_location = \
-            self.y_scaler.fit_transform(self.target_ee_location)
+            self.ee_location_scaler.transform(self.target_ee_location)
 
         self.initial_joint_state = torch.tensor(self.initial_joint_state)
         self.initial_ee_location = torch.tensor(self.initial_ee_location)

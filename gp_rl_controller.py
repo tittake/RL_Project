@@ -25,11 +25,6 @@ def main(configuration):
     # print(gpmodel.predict([0, 0, 0, 1, 1, 1]))
     configuration["gp_model"] = gpmodel
     
-    X_scaler, y_scaler = dataloader.get_scaler()
-    configuration["X_scaler"] = gpmodel.X_scaler
-    configuration["y_scaler"] = gpmodel.y_scaler
-    print(gpmodel.X_scaler, gpmodel.y_scaler)
-
     policy_network = PolicyNetwork(**configuration)
 
     policy_network.optimize_policy()
