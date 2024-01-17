@@ -1,4 +1,5 @@
 import csv
+from sys import argv
 
 
 def save_every_tenth_row(input_csv, output_csv):
@@ -29,10 +30,8 @@ def save_every_tenth_row(input_csv, output_csv):
 
 if __name__ == "__main__":
 
-    # Replace with the path to your input CSV file
-    input_csv_file = 'data/training2_simple_100Hz.csv'
+    input_csv_file = argv[1]
 
-    # Replace with the desired output CSV file
-    output_csv_file = 'data/training2_simple_10Hz.csv'
+    output_csv_file = argv[2]
 
     save_every_tenth_row(input_csv_file, output_csv_file)
