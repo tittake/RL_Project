@@ -1,7 +1,6 @@
-train_path: "data/two-joint_trajectories_10Hz/trajectory22.csv"
-test_path: "data/two-joint_trajectories_10Hz/trajectory21.csv" 
-data_directory: "data/trajectories-all_joints_10Hz"
-#data_directory: "data/two-joint_trajectories_10Hz"
+train_path: "trajectories/100Hz/all_joints/trajectory22.csv"
+test_path: "trajectories/100Hz/all_joints/trajectory21.csv" 
+data_directory: "trajectories/100Hz/all_joints"
 model_path: "trained_models/three_joints_GP.pth"
 num_tasks: 5
 ard_num_dims: 6
