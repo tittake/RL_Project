@@ -16,7 +16,19 @@ y_names = ["boom_x", "boom_y", "theta1", "theta2", "xt2"]
 
 
 def normalize_data(X, y, testing):
-
+    '''
+    Normalizes inputs and outputs with MinMaxScalers.
+    Args:
+        X: input data
+        y: output data
+        testing (bool): is X and y for training or testing
+    Returns:
+        X: normalized input data
+        y: normalized output data
+        min_max_joint_scaler: scaler for joint values 
+        min_max_torque_scaler: scaler for torques
+        min_max_ee_location_scaler: scaler for end-effector location
+    '''
     if not testing:
 
         joints = min_max_joint_scaler.fit_transform(X[:, 0:3])
@@ -52,10 +64,30 @@ def normalize_data(X, y, testing):
 
 
 def load_data(path):
+    '''
+    Loads datafile from path to pandas dataframe
+    Args:
+        path: Path to datafile
+    Returns: 
+        Datafile in a dataframe
+    '''
     return pd.read_csv(path)
 
 
 def load_data_directory(path):
+    '''
+    Loads a directory of trajectories and separates them into testing and training data.
+    Args:
+        path: Path to data directory
+    Returns:
+        X_train: GP training inputs
+        X_test: GP testing inputs
+        y_train: GP training outputs
+        y_test: GP testing outputs
+        joint_scaler: scaler for joint values 
+        torque_scaler: scaler for torques 
+        ee_location_scaler: scaler for end-effector locations
+    '''
 
     files = os.listdir(path)
 
@@ -107,6 +139,14 @@ def load_data_directory(path):
 
 
 def get_xy(data):
+    '''
+    Separates dataframe into GP inputs and outputs
+    Args:
+        data: Dataframe including all values
+    Returns:
+        X: GP inputs (joint values, torques)
+        y: GP outputs (next end-effector location, next joint values)
+    '''
 
     try:
 
@@ -125,6 +165,18 @@ def get_xy(data):
 
 
 def load_training_data(data_path, normalize=True):
+    '''
+    Loads training data from path. 
+    Args:
+        data_path: path to trajectory file
+        normalize (bool): should data training data be normalized or not
+    Returns: 
+        X: GP training inputs
+        y: GP training outputs
+        joint_scaler: scaler for joint values 
+        torque_scaler: scaler for torques 
+        ee_location_scaler: scaler for end-effector locations
+    '''
 
     training_data = load_data(data_path)
 
@@ -149,13 +201,24 @@ def load_training_data(data_path, normalize=True):
 
 
 def load_testing_data(data_path, normalize=False):
+    '''
+    Loads testing data from path. 
+    Args:
+        data_path: path to trajectory file
+        normalize (bool): should data testing data be normalized or not
+    Returns: 
+        X: GP testing inputs
+        y: GP testing outputs
+        joint_scaler: scaler for joint values 
+        torque_scaler: scaler for torques 
+        ee_location_scaler: scaler for end-effector locations
+    '''
 
     testing_data = load_data(data_path)
 
     X, y = get_xy(testing_data)
 
     if normalize:
-
         (X,
          y,
          joint_scaler,
@@ -171,6 +234,12 @@ def load_testing_data(data_path, normalize=False):
 
 
 def plot_X_train_vs_time(X, names):
+    '''
+    Plots dataset values against time, each column in a separate subplot.
+    Args:
+        X: Data to plot
+        names: Column names
+    '''
     # Create a time axis based on the number of data points
     num_data_points = X.shape[0]
     time_axis = np.arange(num_data_points)
