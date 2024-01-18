@@ -1,6 +1,9 @@
+from os import getcwd, mkdir
+from os.path import dirname, exists, isdir, isfile, join
+from pathlib import Path
 import time
-from os.path import isdir, isfile
 
+from joblib import dump, load
 import gpytorch
 import matplotlib.pyplot as plt
 import torch
@@ -13,11 +16,39 @@ from GP_model.BatchIndependentMultiTaskGP \
 
 class GPModel:
 
-    def __init__(self, training_data_path):
+    def __init__(self,
+                 training_data_path: str = None,
+                 saved_model_path:   str = None):
 
-        # TODO what are my arguments?
+        self.metadata_attributes = ("input_feature_count",
+                                    "output_feature_count",
+                                    "joint_scaler",
+                                    "torque_scaler",
+                                    "ee_location_scaler")
 
-        super(GPModel, self).__init__()
+        new_model_arguments = (training_data_path, )
+
+        saved_model_arguments = (saved_model_path, )
+
+        model_is_new = (    all(option is not None for option
+                                in new_model_arguments)
+                        and all(option is None for option
+                                in saved_model_arguments))
+
+        model_is_saved = (    all(option is not None
+                                  for option in saved_model_arguments)
+                          and all(option is None
+                                  for option in new_model_arguments))
+
+        try:
+            assert (   (model_is_new   and not model_is_saved)
+                    or (model_is_saved and not model_is_new))
+
+        except AssertionError:
+            raise ValueError("Please provide either:\n"
+                             "  training_data_path; or"
+                             "  saved_model_path, input_feature_count, "
+                             "and output_feature_count.")
 
         self.device = torch.device("cuda:0"
                                    if torch.cuda.is_available()
@@ -25,50 +56,127 @@ class GPModel:
 
         print(f"using device: {self.device}")
 
-        if isfile(training_data_path):
-            self.X_train, self.y_train = \
-                dataloader.load_training_data(train_path = training_data_path,
-                                              normalize  = True)
+        if model_is_new:
 
-        elif isdir(training_data_path):
-            self.X_train, self.X_test, self.y_train, self.y_test = \
-                dataloader.load_data_directory(training_data_path)
+            if isfile(training_data_path):
+                (self.X_train,
+                 self.y_train,
+                 self.joint_scaler,
+                 self.torque_scaler,
+                 self.ee_location_scaler) = \
+                    dataloader.load_training_data(
+                        data_path = training_data_path,
+                        normalize  = True)
 
-        input_feature_count = self.X_train.shape[1]
+            elif isdir(training_data_path):
+                (self.X_train,
+                 self.X_test,
+                 self.y_train,
+                 self.y_test,
+                 self.joint_scaler,
+                 self.torque_scaler,
+                 self.ee_location_scaler) = \
+                    dataloader.load_data_directory(training_data_path)
 
-        output_feature_count = self.y_train.shape[1]
+            self.X_train = self.X_train.to(self.device, dtype=torch.float64)
+            self.y_train = self.y_train.to(self.device, dtype=torch.float64)
+
+            self.input_feature_count = self.X_train.shape[1]
+
+            self.output_feature_count = self.y_train.shape[1]
+
+        if model_is_saved:
+
+            self.X_train = None
+            self.y_train = None
+
+            folder = dirname(join(getcwd(), saved_model_path))
+
+            metadata_path = join(folder,
+                                 Path(saved_model_path).stem
+                                 + ".joblib")
+
+            try:
+                metadata = load(filename = metadata_path)
+            except FileNotFoundError:
+                raise FileNotFoundError("Saved scalers not found!\n"
+                                        "  Expected path: " + metadata_path)
+
+            for attribute_name, attribute \
+                in zip(self.metadata_attributes, metadata):
+
+                setattr(self, attribute_name, attribute)
+
+            # for attribute_name in self.metadata_attributes:
+                # print(f"{attribute_name} {getattr(self, attribute_name)}")
 
         self.likelihood = \
             gpytorch.likelihoods\
-            .MultitaskGaussianLikelihood(num_tasks = output_feature_count,
+            .MultitaskGaussianLikelihood(num_tasks = self.output_feature_count,
                                          ).to(device = self.device,
                                               dtype  = torch.float64)
 
         self.model = \
             BatchIndependentMultiTaskGPModel(
-                    likelihood   = self.likelihood,
-                    num_tasks    = output_feature_count,
-                    ard_num_dims = input_feature_count,
+                    train_inputs  = self.X_train,
+                    train_targets = self.y_train,
+                    likelihood    = self.likelihood,
+                    num_tasks     = self.output_feature_count,
+                    ard_num_dims  = self.input_feature_count,
                     ).to(self.device, torch.float64)
 
-    def load_saved_model(self):
+        if model_is_saved:
 
-        state_dict = torch.load(self.model_path)
+            state_dict = torch.load(saved_model_path)
 
-        self.model.load_state_dict(state_dict)
-        self.model.eval()
-        self.likelihood.eval()
+            self.model.load_state_dict(state_dict)
 
-    def train(self, iterations, save_model_to=None, plot_loss=False):
+    def train(self,
+              iterations,
+              data_path      = None,
+              save_model_to  = None,
+              plot_loss      = False):
 
-        self.X_train = self.X_train.to(self.device, dtype=torch.float64)
-        self.y_train = self.y_train.to(self.device, dtype=torch.float64)
+        # TODO what if user passes data path to continue training / fine-tune a pre-trained model?
 
-        self.model.set_train_data(inputs  = self.X_train,
-                                  targets = self.y_train,
-                                  strict  = False)
+        if data_path is None:
+            if self.X_train is None:
+                raise TypeError("data_path must be provided to train!")
+
+        else:
+
+            # TODO pass existing scalers from pretrained model to dataloader!!!
+
+            if isfile(data_path):
+
+                # ignore returned scalers, use scalers from pretrained model
+                (self.X_train, self.y_train, _, _, _) = \
+                    dataloader.load_training_data(
+                        data_path = data_path,
+                        normalize  = True)
+
+            elif isdir(data_path):
+
+                # ignore returned scalers and testing dataset
+                (self.X_train, self.X_test, _, _, _, _, _) = \
+                    dataloader.load_data_directory(training_data_path)
+
+            else:
+                raise ValueError("invalid path: " + data_path)
+
+            self.X_train = self.X_train.to(self.device, dtype=torch.float64)
+            self.y_train = self.y_train.to(self.device, dtype=torch.float64)
+
+            assert self.input_feature_count == self.X_train.shape[1]
+
+            assert self.output_feature_count == self.y_train.shape[1]
+
+            self.model.set_train_data(inputs  = self.X_train,
+                                      targets = self.y_train,
+                                      strict  = False)
 
         self.model.train()
+
         self.likelihood.train()
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=0.1)
@@ -97,7 +205,21 @@ class GPModel:
         self.likelihood.eval()
 
         if save_model_to:
-            torch.save(self.model.state_dict(), model_path)
+
+            folder = dirname(join(getcwd(), save_model_to))
+
+            if not isdir(folder):
+                mkdir(folder)
+
+            torch.save(self.model.state_dict(), save_model_to)
+
+            metadata = tuple(getattr(self, attribute)
+                            for attribute in self.metadata_attributes)
+
+            dump(value    = metadata,
+                 filename = join(folder,
+                                 Path(save_model_to).stem
+                                 + ".joblib"))
 
         if plot_loss:
 
@@ -114,15 +236,23 @@ class GPModel:
 
     def test(self, data_path, plot=False):
 
-        self.X_test, self.y_test = \
-            dataloader.load_test_data(test_path = data_path,
-                                      normalize = True)
+        (self.X_train,
+         self.y_train,
+         self.joint_scaler,
+         self.torque_scaler,
+         self.ee_location_scaler) = \
+            dataloader.load_testing_data(
+                data_path = data_path,
+                normalize  = True)
 
         self.X_test = self.X_test.to(self.device, dtype=torch.float64)
         self.y_test = self.y_test.to(self.device, dtype=torch.float64)
 
         # Plot for tasks
         tasks = ["x_boom", "y_boom"]
+
+        self.model.eval()
+        self.likelihood.eval()
 
         if plot:
             _, axes_tasks = plt.subplots(1, len(tasks), figsize=(12, 4))

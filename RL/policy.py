@@ -23,9 +23,9 @@ class PolicyNetwork:
         (
             self.x_values, 
             self.y_values,
-        ) = dataloader.load_training_data(self.train_path)
+        ) = dataloader.load_training_data(data_path=self.training_data_path)
         
-        # test_data = dataloader.load_test_data(self.test_path)
+        # test_data = dataloader.load_testing_data(data_path=self.testing_data_path)
         self.controller = self.get_controller()
 
     def get_controller(self):
@@ -45,7 +45,8 @@ class PolicyNetwork:
         Optimize controller parameters
         """
 
-        maxiter = self.training_iter
+        maxiter = self.training_iterations
+
         trials = self.trials
         
         all_optim_data = {"all_optimizer_data": []}

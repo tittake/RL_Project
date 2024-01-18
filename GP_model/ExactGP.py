@@ -3,10 +3,10 @@ import gpytorch
 
 class ExactGPModel(gpytorch.models.ExactGP):
 
-    def __init__(self, likelihood):
+    def __init__(self, train_inputs, train_targets, likelihood):
 
-        super().__init__(train_inputs  = None,
-                         train_targets = None,
+        super().__init__(train_inputs  = train_inputs,
+                         train_targets = train_inputs,
                          likelihood    = likelihood)
 
         self.mean_module = gpytorch.means.ConstantMean()

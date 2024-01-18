@@ -15,19 +15,25 @@ def get_configs():
 def main(configuration):
     """Collective controller for GP model and RL controller"""
 
-    gp_model = GPModel(training_data_path = configuration["data_directory"])
+    training_data_path = configuration["training_data_path"]
 
-    gp_model.train(iterations=configuration["training_iter"], plot_loss=True)
+    # instantiate a new model for training
+    gp_model = GPModel(training_data_path = training_data_path)
 
-    gp_model.test(data_path = configuration["test_path"], plot=True)
+    # train and save weights
+    gp_model.train(iterations    = configuration["training_iterations"],
+                   save_model_to = configuration["model_path"],
+                   plot_loss     = True)
 
-    from torch import tensor
-    print(gp_model.predict(tensor([[0, 0, 0, 1, 1, 1]])).mean)
+    gp_model.test(data_path = configuration["testing_data_path"], plot=True)
 
-    # policy_network = PolicyNetwork(**configuration)
+    # reinstantiate the model from the saved weights
+    gp_model = GPModel(saved_model_path = configuration["model_path"])
 
-    # policy_network.optimize_policy()
-
+    # continue training on some other data, don't save changed model this time
+    gp_model.train(iterations = configuration["training_iterations"],
+                   data_path  = configuration["testing_data_path"],
+                   plot_loss  = True)
 
 if __name__ == "__main__":
 

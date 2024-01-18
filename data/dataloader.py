@@ -1,34 +1,54 @@
-import numpy as np
-import pandas as pd
-import torch
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import MinMaxScaler
 import os
 
-scaler = StandardScaler()
-scaler_y = StandardScaler()
-min_max_scaler = MinMaxScaler()
-min_max_y_scaler = MinMaxScaler()
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
+import torch
+
+min_max_joint_scaler = MinMaxScaler()
+min_max_torque_scaler = MinMaxScaler()
+min_max_ee_location_scaler = MinMaxScaler()
 
 X_names = ["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]
-y_names = ["boom_x", "boom_y", "boom_angle"]
+y_names = ["boom_x", "boom_y", "theta1", "theta2", "xt2"]
 
 
 def normalize_data(X, y, testing):
 
     if not testing:
-        X = min_max_scaler.fit_transform(X)
-        y = min_max_y_scaler.fit_transform(y)
+
+        joints = min_max_joint_scaler.fit_transform(X[:, 0:3])
+
+        torques = min_max_torque_scaler.fit_transform(X[:, 3:])
+
+        X = np.concatenate((joints, torques), axis=1)
+
+        ee_location = min_max_ee_location_scaler.fit_transform(y[:, 0:2])
+
+        y = np.concatenate((ee_location, joints), axis=1)
 
     else:
-        X = min_max_scaler.transform(X)
-        y = min_max_y_scaler.transform(y)
+
+        joints = min_max_joint_scaler.transform(X[:, 0:3])
+
+        torques = min_max_torque_scaler.transform(X[:, 3:])
+
+        X = np.concatenate((joints, torques), axis=1)
+
+        ee_location = min_max_ee_location_scaler.transform(y[:, 0:2])
+
+        y = np.concatenate((ee_location, joints), axis=1)
 
     X = torch.tensor(X, dtype=torch.double)
     y = torch.tensor(y, dtype=torch.double)
 
-    return X, y
+    return (X,
+            y,
+            min_max_joint_scaler,
+            min_max_torque_scaler,
+            min_max_ee_location_scaler)
 
 
 def load_data(path):
@@ -36,16 +56,21 @@ def load_data(path):
 
 
 def load_data_directory(path):
+
     files = os.listdir(path)
 
     csv_files = [file for file in files if file.endswith('.csv')]
 
     combined_df = []
 
+    iteration = 0
+
     for csv_file in csv_files:
         file_path = os.path.join(path, csv_file)
         df = pd.read_csv(file_path)
-        combined_df.append(df)
+        if iteration % 3 == 1:
+            combined_df.append(df)
+        iteration += 1
 
     combined_df = pd.concat(combined_df, ignore_index=True)
 
@@ -60,26 +85,37 @@ def load_data_directory(path):
     X_train, X_test, y_train, y_test = \
         non_shuffling_train_test_split(X, y, test_size=0.2)
 
-    X_train, y_train = normalize_data(X_train.values,
-                                      y_train.values,
-                                      testing=False)
+    (X_train,
+     y_train,
+     joint_scaler,
+     torque_scaler,
+     ee_location_scaler) = normalize_data(X_train.values,
+                                          y_train.values,
+                                          testing=False)
 
-    X_test, y_test = normalize_data(X_test.values,
-                                    y_test.values,
-                                    testing=True)
+    X_test, y_test, _, _, _ = normalize_data(X_test.values,
+                                             y_test.values,
+                                             testing=True)
 
-    return X_train, X_test, y_train, y_test
+    return (X_train,
+            X_test,
+            y_train,
+            y_test,
+            joint_scaler,
+            torque_scaler,
+            ee_location_scaler)
 
 
 def get_xy(data):
-    try:
-        X = data[["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]]
-        # X = data[["theta1", "theta2", "xt2"]]
-        y = data[["boom_x", "boom_y"]]
 
-        # Shift data so we predict next end-effector position
-        y = y.shift(1)
+    try:
+
+        X = data[X_names]
+        y = data[y_names]
+
+        # shift data to predict the next state
         X = X.iloc[:-1]
+        y = y.shift(1)
         y = y.iloc[1:]
 
         return X, y
@@ -88,30 +124,50 @@ def get_xy(data):
         raise AttributeError("Invalid data format")
 
 
-def load_training_data(train_path, normalize=True):
+def load_training_data(data_path, normalize=True):
 
-    train_data = load_data(train_path)
-    X, y = get_xy(train_data)
+    training_data = load_data(data_path)
+
+    X, y = get_xy(training_data)
 
     if normalize:
-        X, y = normalize_data(X.values, y.values, testing=False)
+
+        (X,
+         y,
+         joint_scaler,
+         torque_scaler,
+         ee_location_scaler) = normalize_data(X.values,
+                                              y.values,
+                                              testing=False)
+
+    else:
+
+        X = torch.tensor(X.values, dtype=torch.double)
+        y = torch.tensor(y.values, dtype=torch.double)
+
+    return X, y, joint_scaler, torque_scaler, ee_location_scaler
+
+
+def load_testing_data(data_path, normalize=False):
+
+    testing_data = load_data(data_path)
+
+    X, y = get_xy(testing_data)
+
+    if normalize:
+
+        (X,
+         y,
+         joint_scaler,
+         torque_scaler,
+         ee_location_scaler
+         ) = normalize_data(X.values, y.values, testing=True)
+
     else:
         X = torch.tensor(X.values, dtype=torch.double)
         y = torch.tensor(y.values, dtype=torch.double)
 
-    return X, y
-
-
-def load_test_data(test_path, normalize=False):
-    test_data = load_data(test_path)
-    X, y = get_xy(test_data)
-
-    if normalize:
-        X, y = normalize_data(X.values, y.values, testing=True)
-    else:
-        X = torch.tensor(X.values, dtype=torch.double)
-        y = torch.tensor(y.values, dtype=torch.double)
-    return X, y
+    return X, y, joint_scaler, torque_scaler, ee_location_scaler
 
 
 def plot_X_train_vs_time(X, names):
@@ -122,7 +178,7 @@ def plot_X_train_vs_time(X, names):
     # Get the number of features in X
     num_features = X.shape[1]
     # Set up a single figure for all subplots
-    fig, axs = plt.subplots(num_features, 1, figsize=(10, 2*num_features))
+    fig, axs = plt.subplots(num_features, 1, figsize=(10, 2 * num_features))
     fig.suptitle('Testing outputs', fontsize=24)
 
     # Plot each feature in X against time in subplots
@@ -141,15 +197,15 @@ def plot_X_train_vs_time(X, names):
 
 
 if __name__ == "__main__":
-    # train_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
-    # test_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
-    train_path = "data/two-joint_trajectories_10Hz/trajectory2.csv"
-    test_path = "data/two-joint_trajectories_10Hz/trajectory3.csv"
+    # training_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
+    # data_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
+    training_path = "data/two-joint_trajectories_10Hz/trajectory2.csv"
+    testing_path = "data/two-joint_trajectories_10Hz/trajectory3.csv"
 
     data_directory = 'data/two-joint_trajectories_10Hz'
 
-    X_train, y_train = load_training_data(train_path, True)
-    X_test, y_test = load_test_data(test_path, True)
+    X_train, y_train = load_training_data(training_path, True)
+    X_test, y_test = load_testing_data(testing_path, True)
 
     X_train, X_test, y_train, y_test = load_data_directory(data_directory)
     print(X_train.shape, X_test.shape)

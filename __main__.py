@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-# TODO migrate to package relative imports to be able to run as a module
+# TODO change to package-relative imports everywhere to be able to run as module
 from GP_model.GPController import GPModel
 
 def main():
@@ -11,7 +11,7 @@ def main():
 
     GP_parser = subparsers.add_parser("GP")
 
-    GP_subparsers = GP_parser.add_subparsers()
+    GP_subparsers = GP_parser.add_subparsers(required=True)
 
     GP_training_parser = GP_subparsers.add_parser("train")
     GP_testing_parser  = GP_subparsers.add_parser("test")
@@ -26,15 +26,20 @@ def main():
                                     type     = int,
                                     required = True)
 
-    GP_training_parser.add_argument("--model_path",
+    GP_training_parser.add_argument("--save_model_to",
                                     type = str)
+
+    GP_training_parser.add_argument("--plot_loss",
+                                    type    = bool,
+                                    default = False)
 
     GP_model_class_choices = ("BatchIndependentMultiTaskGP", "MultiTaskGP")
 
-    GP_training_parser.add_argument("--model_class",
-                                    type    = str,
-                                    choices = GP_model_class_choices,
-                                    default = "MultiTaskGP")
+    # TODO
+    # GP_training_parser.add_argument("--model_class",
+                                    # type    = str,
+                                    # choices = GP_model_class_choices,
+                                    # default = "MultiTaskGP")
 
     GP_testing_parser.set_defaults(function=test_GP)
 
@@ -55,15 +60,17 @@ def main():
 
     function(**arguments)
 
-def train_GP(data_path:   str,
-             iterations:  int,
-             model_path:  str,
-             model_class: str,
-             plot_loss:   bool):
+def train_GP(data_path:     str,
+             iterations:    int,
+             save_model_to: str,
+             # model_class: str, # TODO
+             plot_loss:     bool):
 
     gp_model = GPModel(training_data_path = data_path)
 
-    gp_model.train(iterations=iterations, plot_loss=plot_loss)
+    gp_model.train(iterations    = iterations,
+                   save_model_to = save_model_to,
+                   plot_loss     = plot_loss)
 
     # TODO what if user wants to test the model just trained without saving it?
 
@@ -71,8 +78,10 @@ def test_GP(model_path: str,
             data_path:  str,
             plot:       bool):
 
-    pass # TODO instantiate model
-    # is this even possible for a saved model without providing training data?
+    gp_model = GPModel(saved_model_path = model_path)
+
+    gp_model.test(data_path = data_path,
+                  plot      = True)
 
 if __name__ == "__main__":
     main()
