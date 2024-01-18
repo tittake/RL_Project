@@ -19,6 +19,9 @@ class GPModel:
     def __init__(self,
                  training_data_path: str = None,
                  saved_model_path:   str = None):
+        '''
+        Initializes Gaussian Process model. 
+        '''
 
         self.metadata_attributes = ("input_feature_count",
                                     "output_feature_count",
@@ -133,6 +136,14 @@ class GPModel:
               data_path      = None,
               save_model_to  = None,
               plot_loss      = False):
+        '''
+        Training loop for GP. 
+        Args:
+            iterations: (int) Training loop iterations
+            data_path: Path to trajectory data
+            save_model_to: Path to save trained model parameters to 
+            plot_loss (bool): Plot loss function or not  
+        '''
 
         if data_path is None:
             if self.X_train is None:
@@ -230,6 +241,12 @@ class GPModel:
             plt.show()
 
     def test(self, data_path=None, plot=False):
+        '''
+        Function to test out trained Gaussian Process model. Plots GP predictions results.
+        Args:
+            data_path: Path for testing data
+            plot (bool): Plot predicted means
+        '''
 
         if data_path is None:
             if not hasattr(self, "X_test"):
@@ -262,7 +279,7 @@ class GPModel:
         self.y_test = self.y_test.to(self.device, dtype=torch.float64)
 
         # Plot for tasks
-        tasks = ["x_boom", "y_boom"]
+        tasks = ["End-effector x-location", "End-effector y-location"]
 
         self.model.eval()
         self.likelihood.eval()
@@ -302,6 +319,13 @@ class GPModel:
         plt.show()
 
     def predict(self, X):
+        '''
+        Predict end-effector location and joint values for a single joint value+torque sample.
+        Args:
+            X: Input sample (3x joint values + 3x joint torques)
+        Returns:
+            observed_pred: Predicted next end-effector location and corresponding joint values
+        '''
         with gpytorch.settings.fast_pred_var():  # torch.no_grad(),
             observed_pred = self.likelihood(self.model(X))
         return observed_pred
