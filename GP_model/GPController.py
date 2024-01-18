@@ -154,7 +154,7 @@ class GPModel:
 
                 # ignore returned scalers and testing dataset
                 (self.X_train, _, self.y_train, _, _, _, _) = \
-                    dataloader.load_data_directory(training_data_path)
+                    dataloader.load_data_directory(data_path)
 
             else:
                 raise ValueError("invalid path: " + data_path)
