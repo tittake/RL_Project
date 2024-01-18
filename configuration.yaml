@@ -1,0 +1,4 @@
+training_data_path: "trajectories/100Hz/all_joints"
+testing_data_path: "trajectories/100Hz/all_joints/trajectory12.csv"
+model_path: "trained_models/all_joints.pth"
+training_iterations: 150
