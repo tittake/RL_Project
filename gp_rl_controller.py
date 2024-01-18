@@ -18,14 +18,14 @@ def main(configuration):
     training_data_path = configuration["training_data_path"]
 
     # instantiate a new model for training
-    gp_model = GPModel(training_data_path = training_data_path)
+    gp_model = GPModel(data_path = training_data_path)
 
     # train and save weights
     gp_model.train(iterations    = configuration["training_iterations"],
                    save_model_to = configuration["model_path"],
                    plot_loss     = True)
 
-    gp_model.test(data_path = configuration["testing_data_path"], plot=True)
+    gp_model.test(plot=True)
 
     # reinstantiate the model from the saved weights
     gp_model = GPModel(saved_model_path = configuration["model_path"])

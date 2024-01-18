@@ -17,8 +17,8 @@ from GP_model.BatchIndependentMultiTaskGP \
 class GPModel:
 
     def __init__(self,
-                 training_data_path: str = None,
-                 saved_model_path:   str = None):
+                 data_path:        str = None,
+                 saved_model_path: str = None):
         '''
         Initializes Gaussian Process model. 
         '''
@@ -29,7 +29,7 @@ class GPModel:
                                     "torque_scaler",
                                     "ee_location_scaler")
 
-        new_model_arguments = (training_data_path, )
+        new_model_arguments = (data_path, )
 
         saved_model_arguments = (saved_model_path, )
 
@@ -49,7 +49,7 @@ class GPModel:
 
         except AssertionError:
             raise ValueError("Please provide either:\n"
-                             "  training_data_path; or"
+                             "  data_path; or"
                              "  saved_model_path, input_feature_count, "
                              "and output_feature_count.")
 
@@ -61,17 +61,17 @@ class GPModel:
 
         if model_is_new:
 
-            if isfile(training_data_path):
+            if isfile(data_path):
                 (self.X_train,
                  self.y_train,
                  self.joint_scaler,
                  self.torque_scaler,
                  self.ee_location_scaler) = \
                     dataloader.load_training_data(
-                        data_path = training_data_path,
+                        data_path = data_path,
                         normalize  = True)
 
-            elif isdir(training_data_path):
+            elif isdir(data_path):
                 (self.X_train,
                  self.X_test,
                  self.y_train,
@@ -79,7 +79,10 @@ class GPModel:
                  self.joint_scaler,
                  self.torque_scaler,
                  self.ee_location_scaler) = \
-                    dataloader.load_data_directory(training_data_path)
+                    dataloader.load_data_directory(data_path)
+
+            else:
+                raise ValueError("invalid path: " + data_path)
 
             self.X_train = self.X_train.to(self.device, dtype=torch.float64)
             self.y_train = self.y_train.to(self.device, dtype=torch.float64)
