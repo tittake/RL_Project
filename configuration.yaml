@@ -1,7 +1,4 @@
 training_data_path: "trajectories/100Hz/all_joints"
 testing_data_path: "trajectories/100Hz/all_joints/trajectory12.csv"
 model_path: "trained_models/all_joints.pth"
-num_tasks: 2
-ard_num_dims: 6
-training_iterations: 150
-train_GP: True
+training_iterations: 2
