@@ -149,7 +149,7 @@ class GPModel:
 
             if isfile(data_path):
 
-                # ignore returned scalers, use scalers from pretrained model
+                # ignore returned scalers, keep scalers from pretrained model
                 (self.X_train, self.y_train, _, _, _) = \
                     dataloader.load_training_data(
                         data_path = data_path,
@@ -158,7 +158,7 @@ class GPModel:
             elif isdir(data_path):
 
                 # ignore returned scalers and testing dataset
-                (self.X_train, self.X_test, _, _, _, _, _) = \
+                (self.X_train, _, self.y_train, _, _, _, _) = \
                     dataloader.load_data_directory(training_data_path)
 
             else:
@@ -234,16 +234,33 @@ class GPModel:
 
             plt.show()
 
-    def test(self, data_path, plot=False):
+    def test(self, data_path=None, plot=False):
 
-        (self.X_train,
-         self.y_train,
-         self.joint_scaler,
-         self.torque_scaler,
-         self.ee_location_scaler) = \
-            dataloader.load_testing_data(
-                data_path = data_path,
-                normalize  = True)
+        if data_path is None:
+            if self.X_test is None:
+                raise TypeError("data_path must be provided to test!")
+
+        else:
+            # TODO pass existing scalers from pretrained model to dataloader!!!
+
+            if isfile(data_path):
+
+                # ignore returned scalers, keep scalers from training
+                (self.X_test,
+                 self.y_test,
+                 _, _, _) = \
+                    dataloader.load_testing_data(
+                        data_path = data_path,
+                        normalize  = True)
+
+            elif isdir(data_path):
+
+                # ignore returned scalers and training dataset
+                (_, self.X_test, _, self.y_test, _, _, _) = \
+                    dataloader.load_data_directory(data_path)
+
+            else:
+                raise ValueError("invalid path: " + data_path)
 
         self.X_test = self.X_test.to(self.device, dtype=torch.float64)
         self.y_test = self.y_test.to(self.device, dtype=torch.float64)

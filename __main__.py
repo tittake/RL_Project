@@ -43,6 +43,10 @@ def main():
 
     GP_testing_parser.set_defaults(function=test_GP)
 
+    GP_testing_parser.add_argument("--model_path",
+                                   type     = str,
+                                   required = True)
+
     GP_testing_parser.add_argument("--data_path",
                                    type     = str,
                                    required = True)
