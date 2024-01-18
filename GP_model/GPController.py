@@ -232,10 +232,11 @@ class GPModel:
     def test(self, data_path=None, plot=False):
 
         if data_path is None:
-            if self.X_test is None:
+            if not hasattr(self, "X_test"):
                 raise TypeError("data_path must be provided to test!")
 
         else:
+
             # TODO pass existing scalers from pretrained model to dataloader!!!
 
             if isfile(data_path):
