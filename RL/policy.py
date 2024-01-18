@@ -90,10 +90,10 @@ class PolicyNetwork:
             # reset and set optimizer over trials,
             # calculate and plot reward and mean error over max_iterations
 
-            optimInfo = {"loss": [], "time": []}
+            optimInfo = {"loss": [], "time": [], "ee_loc": []}
 
             #rewards = 0
-
+            
             self.controller.train()
 
             for i in range(maxiter):
@@ -124,6 +124,7 @@ class PolicyNetwork:
 
                 optimInfo["loss"].append(loss.item())
                 optimInfo["time"].append(t2)
+                optimInfo["ee_loc"].append(self.ee_location)
 
             # plot function, TODO some modifictaions that plots are correct
             # plot_policy()
@@ -137,26 +138,58 @@ class PolicyNetwork:
                 "controller initial": initial_controller,
                 "controller final": deepcopy(self.controller),
                 "Loss": loss,
-                "Trial": trial,
+                "Trial": trial
             }
 
             all_optim_data["all_optimizer_data"].append(trial_save_info)
 
         # TODO: better printing function
         #print("Optimized data: ", all_optim_data)
+        
+        fig, axs = plt.subplots(len(all_optim_data["all_optimizer_data"]), 1, figsize=(8, 6 * len(all_optim_data["all_optimizer_data"])))
+        fig.suptitle('Loss Subplots', y=0.92)
+        fig.tight_layout(pad=3.0)
 
-        _, ax_loss = plt.subplots(figsize=(6, 4))
-
-        ax_loss.plot(optimInfo["loss"], label='Training Loss')
-
-        ax_loss.set_title('Training Loss Over Iterations')
-        ax_loss.set_xlabel('Iteration')
-        ax_loss.set_ylabel('Loss')
-
-        ax_loss.legend()
+        for idx, trial_save_info in enumerate(all_optim_data["all_optimizer_data"]):
+            ax = axs[idx]
+            ax.set_title(f'Trial {trial_save_info["Trial"]}')
+            ax.set_xlabel('Iteration')
+            ax.set_ylabel('Loss')
+            losses = trial_save_info["optimInfo"]["loss"]
+            ax.plot(range(1, len(losses) + 1), losses)
 
         plt.show()
 
+        fig_ee, axs_ee = plt.subplots(1,5)
+        fig_ee.suptitle('End-effector loc', y=0.9)
+
+        for idx, trial in enumerate(all_optim_data["all_optimizer_data"]):
+            ax = axs_ee[idx]
+            ee_locs = trial["optimInfo"]["ee_loc"]
+            #print("EE_LOCS:",ee_locs[:,0])
+            
+            xs = [tensor.cpu().detach().numpy()[0] for tensor in ee_locs]
+            #ys = [tensor.cpu().detach().numpy()[0] for tensor in ee_locs]
+            ax.plot(range(1, len(xs) + 1), xs)
+            #ax.plot(range(1, len(ys) + 1), ys)
+        plt.show()
+        
+        fig_ee, axs_ee = plt.subplots(1,5)
+        fig_ee.suptitle('End-effector loc', y=0.9)
+
+        for idx, trial in enumerate(all_optim_data["all_optimizer_data"]):
+            ax = axs_ee[idx]
+            ee_locs = trial["optimInfo"]["ee_loc"]
+            #print("EE_LOCS:",ee_locs[:,0])
+            
+            #xs = [tensor.cpu().detach().numpy()[0] for tensor in ee_locs]
+            ys = [tensor.cpu().detach().numpy()[1] for tensor in ee_locs]
+            #ax.plot(range(1, len(xs) + 1), xs)
+            ax.plot(range(1, len(ys) + 1), ys)
+        plt.show()
+        
+
+    
     def calculate_step_loss(self):
         """calculate and return reward for a single time step"""
 
@@ -249,3 +282,5 @@ class PolicyNetwork:
                 self.joint_state, self.target_ee_location
             )
         )
+    
+    

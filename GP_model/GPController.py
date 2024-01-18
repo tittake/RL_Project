@@ -101,20 +101,20 @@ class GPModel:
         #            'trained_models/two_joints_GP.pth')
 
     def plot_training_results(self):
-        #return
+        return
         # Plot for training loss
         _, ax_loss = plt.subplots(figsize=(6, 4))
         if not self.train_GP:
             self.loss_history = []
         ax_loss.plot(self.loss_history, label='Training Loss')
-        ax_loss.set_title('Training Loss Over Iterations')
+        ax_loss.set_title('GP Training Loss Over Iterations')
         ax_loss.set_xlabel('Iteration')
         ax_loss.set_ylabel('Loss')
         ax_loss.legend()
         plt.show()
 
         # Plot for tasks
-        tasks = ["x_boom", "y_boom"]
+        tasks = ["x_boom", "y_boom", "theta1", "theta2", "xt2"]
         _, axes_tasks = plt.subplots(1, len(tasks), figsize=(12, 4))
 
         for i, task in enumerate(tasks):
