@@ -107,9 +107,6 @@ class GPModel:
 
                 setattr(self, attribute_name, attribute)
 
-            # for attribute_name in self.metadata_attributes:
-                # print(f"{attribute_name} {getattr(self, attribute_name)}")
-
         self.likelihood = \
             gpytorch.likelihoods\
             .MultitaskGaussianLikelihood(num_tasks = self.output_feature_count,
@@ -136,8 +133,6 @@ class GPModel:
               data_path      = None,
               save_model_to  = None,
               plot_loss      = False):
-
-        # TODO what if user passes data path to continue training / fine-tune a pre-trained model?
 
         if data_path is None:
             if self.X_train is None:
