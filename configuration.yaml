@@ -1,17 +1,8 @@
-train_path: "data/two-joint_trajectories_10Hz/trajectory22.csv"
-test_path: "data/two-joint_trajectories_10Hz/trajectory21.csv" 
-data_directory: "data/trajectories-all_joints_10Hz"
-#data_directory: "data/two-joint_trajectories_10Hz"
-model_path: "trained_models/three_joints_GP.pth"
-num_tasks: 5
-ard_num_dims: 6
-training_iter: 150
-train_GP: true
-learning_rate: 0.1
-state_dim: 1
-control_dim: 1
-Tf: 30
-dt: 0.1 
-trials: 10
-rl_training_iter: 100
-rl_learning_rate: 0.1
+data_path: "trajectories/10Hz/all_joints"
+GP:
+  model_path: "trained_models/all_joints.pth"
+  iterations: 116
+RL:
+  trials: 10
+  iterations: 1000
+  learning_rate: 0.1

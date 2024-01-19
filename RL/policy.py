@@ -15,30 +15,19 @@ import matplotlib.pyplot as plt
 
 
 class PolicyNetwork:
-    def __init__(self, **params):
-        super(PolicyNetwork, self).__init__()
-        for key, value in params.items():
-            setattr(self, key, value)
 
-        # Load training data
-        (
-            self.x_values,
-            self.y_values,
-            self.joint_scaler,
-            self.torque_scaler,
-            self.ee_location_scaler
-        ) = dataloader.load_training_data(self.train_path)
+    def __init__(self, gp_model, iterations, trials, learning_rate = 0.1):
 
-        # test_data = dataloader.load_test_data(self.test_path)
-        (
-            self.x_values,
-            self.y_values,
-            self.x_test_values,
-            self.y_test_values,
-            self.joint_scaler,
-            self.torque_scaler,
-            self.ee_location_scaler
-        ) = dataloader.load_data_directory(self.data_directory)
+        super().__init__()
+
+        self.gp_model = gp_model
+        self.iterations = iterations
+        self.trials = trials
+        self.learning_rate = learning_rate
+
+        self.joint_scaler = self.gp_model.joint_scaler
+        self.torque_scaler = self.gp_model.torque_scaler
+        self.ee_location_scaler = self.gp_model.ee_location_scaler
 
         self.device = torch.device("cuda:0"
                                    if torch.cuda.is_available()
@@ -46,15 +35,9 @@ class PolicyNetwork:
 
         self.dtype = torch.double
 
-        self.x_values = self.x_values.to(self.device, dtype=self.dtype)
-        self.y_values = self.x_values.to(self.device, dtype=self.dtype)
-        self.x_test_values = self.x_values.to(self.device, dtype=self.dtype)
-        self.y_test_values = self.x_values.to(self.device, dtype=self.dtype)
-
         self.controller_params = get_controller_params()
         self.controller = self.get_controller()
         # self.gp_model = self.get_gp_model(**params)
-        self.horizon = round(float(self.Tf) / float(self.dt))
 
     def get_controller(self):
         controller = RLController(**self.controller_params)
@@ -71,7 +54,6 @@ class PolicyNetwork:
         Optimize controller parameters
         """
 
-        maxiter = self.rl_training_iter
         trials = self.trials
 
         all_optim_data = {"all_optimizer_data": []}
@@ -83,51 +65,42 @@ class PolicyNetwork:
             initial_controller = deepcopy(self.controller)
 
             optimizer = torch.optim.Adam(self.controller.parameters(),
-                                         lr=self.rl_learning_rate)
+                                         lr=self.learning_rate)
 
             t_start = time.perf_counter()
 
             # reset and set optimizer over trials,
             # calculate and plot reward and mean error over max_iterations
 
-            optimInfo = {"loss": [], "time": [], "ee_loc": []}
+            optimInfo = {"loss": [], "time": []}
 
-            #rewards = 0
-            
             self.controller.train()
 
-            for i in range(maxiter):
+            for i in range(self.iterations):
 
                 optimizer.zero_grad()
 
-                reward = self.calculate_step_loss()
+                print(f"optimize policy: iteration {i + 1} "
+                      f"/ {self.iterations}")
+
+                reward = self.calculate_step_reward()
 
                 loss = -reward
 
-                print(f"Reward: {reward}")
-                print(f"Loss: {loss.item()}")
-                print(f"Curr ee location: {self.ee_location}")
-                print(f"Goal ee location: {self.target_ee_location}")
+                # print(loss)
 
                 loss.backward()
-
-                print(f"Optimize Policy: iteration {i + 1} "
-                      f"/ {maxiter} - Loss: {loss.item():.3f}")
 
                 print()
 
                 optimizer.step()
 
-                # loss counter
-
-                t2 = time.perf_counter() - t_start
-
                 optimInfo["loss"].append(loss.item())
-                optimInfo["time"].append(t2)
-                optimInfo["ee_loc"].append(self.ee_location)
 
-            # plot function, TODO some modifictaions that plots are correct
+            # TODO some modifications that plots are correct
+
             # plot_policy()
+
             print(
                 "Controller's optimization: reward=%.3f."
                 % (loss)
@@ -137,82 +110,57 @@ class PolicyNetwork:
                 "optimInfo": optimInfo,
                 "controller initial": initial_controller,
                 "controller final": deepcopy(self.controller),
-                "Loss": loss,
-                "Trial": trial
+                "loss": loss,
+                "trial": trial,
             }
 
-            all_optim_data["all_optimizer_data"].append(trial_save_info)
+            if False:
+
+                all_optim_data["all_optimizer_data"].append(trial_save_info)
+
+                _, ax_loss = plt.subplots(figsize=(6, 4))
+
+                ax_loss.plot(optimInfo["loss"], label='Training Loss')
+
+                ax_loss.set_title('Training Loss Over Iterations')
+                ax_loss.set_xlabel('Iteration')
+                ax_loss.set_ylabel('Loss')
+
+                ax_loss.legend()
+
+                plt.show()
 
         # TODO: better printing function
-        #print("Optimized data: ", all_optim_data)
-        
-        fig, axs = plt.subplots(len(all_optim_data["all_optimizer_data"]), 1, figsize=(8, 6 * len(all_optim_data["all_optimizer_data"])))
-        fig.suptitle('Loss Subplots', y=0.92)
-        fig.tight_layout(pad=3.0)
+        # print("Optimized data: ", all_optim_data)
 
-        for idx, trial_save_info in enumerate(all_optim_data["all_optimizer_data"]):
-            ax = axs[idx]
-            ax.set_title(f'Trial {trial_save_info["Trial"]}')
-            ax.set_xlabel('Iteration')
-            ax.set_ylabel('Loss')
-            losses = trial_save_info["optimInfo"]["loss"]
-            ax.plot(range(1, len(losses) + 1), losses)
-
-        plt.show()
-
-        fig_ee, axs_ee = plt.subplots(1,5)
-        fig_ee.suptitle('End-effector loc', y=0.9)
-
-        for idx, trial in enumerate(all_optim_data["all_optimizer_data"]):
-            ax = axs_ee[idx]
-            ee_locs = trial["optimInfo"]["ee_loc"]
-            #print("EE_LOCS:",ee_locs[:,0])
-            
-            xs = [tensor.cpu().detach().numpy()[0] for tensor in ee_locs]
-            #ys = [tensor.cpu().detach().numpy()[0] for tensor in ee_locs]
-            ax.plot(range(1, len(xs) + 1), xs)
-            #ax.plot(range(1, len(ys) + 1), ys)
-        plt.show()
-        
-        fig_ee, axs_ee = plt.subplots(1,5)
-        fig_ee.suptitle('End-effector loc', y=0.9)
-
-        for idx, trial in enumerate(all_optim_data["all_optimizer_data"]):
-            ax = axs_ee[idx]
-            ee_locs = trial["optimInfo"]["ee_loc"]
-            #print("EE_LOCS:",ee_locs[:,0])
-            
-            #xs = [tensor.cpu().detach().numpy()[0] for tensor in ee_locs]
-            ys = [tensor.cpu().detach().numpy()[1] for tensor in ee_locs]
-            #ax.plot(range(1, len(xs) + 1), xs)
-            ax.plot(range(1, len(ys) + 1), ys)
-        plt.show()
-        
-
-    
-    def calculate_step_loss(self):
+    def calculate_step_reward(self):
         """calculate and return reward for a single time step"""
 
-        t1 = time.perf_counter() # time for the loss calulations
-
-        counter = 1
-
-        self.joint_state = self.joint_state.to(self.device, dtype=self.dtype)
+        self.joint_state = self.joint_state.to(self.device, dtype=self.dtype).detach()
+        print(f"joint state: {self.joint_state.detach().numpy()}")
 
         action = self.controller(self.joint_state)
 
-        inputs = \
-            torch.tensor([
-                np.concatenate(
-                    [self.joint_state.detach().cpu().numpy(),
-                     action.detach().cpu().numpy()]
-                    ).tolist()])
+        print(f"action: {action.detach().numpy()}")
+
+        inputs = torch.unsqueeze(torch.cat([self.joint_state, action]), dim=0)
+
+        print(f"inputs: {inputs.detach().numpy()[0]}")
+
+        # predict next state
 
         predictions = self.gp_model.predict(inputs)
 
-        # predict next state
         self.ee_location = predictions.mean[0, 0:2]
         self.joint_state = predictions.mean[0, 2:]
+
+        print(f"joint state: {self.joint_state.detach().numpy()}")
+
+        print("current EE location: "
+              f"{self.ee_location.detach().numpy()}")
+
+        print("   goal EE location: "
+              f"{self.target_ee_location.detach().numpy()[0]}")
 
         self.ee_location = self.ee_location.to(self.device,
                                                dtype=torch.float64)
@@ -224,45 +172,33 @@ class PolicyNetwork:
             -torch.cdist(torch.unsqueeze(self.ee_location, dim=0),
                          torch.unsqueeze(self.target_ee_location, dim=0))
 
-        counter += 1
-
-        t_elapsed = time.perf_counter() - t1
-
-        print(f"Predictions completed, elapsed time: {t_elapsed:.2f}s")
+        print(f"reward: {reward.item()}")
 
         return reward
 
     def reset(self):
-        # generate init/goal states
+
+        """set initial & goal states"""
 
         self.initial_joint_state = \
-            torch.tensor([0.203369397750485,
-                          0.833537660540792,
-                          0.20976320774321],
+            torch.tensor([ 0.27417417576467,
+                           0.116512288066668,
+                          -0.0584903062530507],
                          dtype=self.dtype)
 
         self.initial_ee_location = \
-            torch.tensor([[2.34771798310625,
-                           3.24988861728872]],
+            torch.tensor([[3.05775717244459,
+                           2.25868490166918]],
                          dtype=self.dtype)
 
         self.target_ee_location = \
-            torch.tensor([[1.62151587273472,
-                           4.04919736109123]],
-                         dtype=self.dtype)
-
-        #initial torques
-        initial_situation = \
-            torch.tensor([[0.203369397750485,
-                           0.833537660540792,
-                           0.20976320774321,
-                           41415.8512113725,
-                           -52444.0587430585,
-                           4870.27172582177]],
+            torch.tensor([[2.14813625484604,
+                           3.5346459005167]],
                          dtype=self.dtype)
 
         self.initial_joint_state = \
-            self.joint_scaler.transform(self.initial_joint_state.view(1, -1).numpy())[0,:]
+            self.joint_scaler\
+                .transform(self.initial_joint_state.view(1, -1).numpy())[0,:]
         
         self.initial_ee_location = \
             self.ee_location_scaler.transform(self.initial_ee_location)
@@ -276,11 +212,3 @@ class PolicyNetwork:
 
         self.joint_state = deepcopy(self.initial_joint_state)
         self.ee_location = deepcopy(self.initial_ee_location)
-
-        print(
-            "Reset complete: {}..., goal: {}".format(
-                self.joint_state, self.target_ee_location
-            )
-        )
-    
-    

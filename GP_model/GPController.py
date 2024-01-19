@@ -1,73 +1,168 @@
+from os import getcwd, mkdir
+from os.path import dirname, exists, isdir, isfile, join
+from pathlib import Path
 import time
 
+from joblib import dump, load
 import gpytorch
 import matplotlib.pyplot as plt
 import torch
 
 import data.dataloader as dataloader
-# from GP_model.ExactGP import ExactGPModel
+
 from GP_model.BatchIndependentMultiTaskGP \
     import BatchIndependentMultiTaskGPModel
-# from GP_model.MultiTaskGP import MultitaskGPModel
 
 
 class GPModel:
 
-    def __init__(self, **params):
-        super(GPModel, self).__init__()
+    def __init__(self,
+                 data_path:        str,
+                 saved_model_path: str = None):
+        '''
+        Initializes Gaussian Process model. 
+        '''
 
-        for key, value in params.items():
-            setattr(self, key, value)
+        self.metadata_attributes = ("input_feature_count",
+                                    "output_feature_count",
+                                    "joint_scaler",
+                                    "torque_scaler",
+                                    "ee_location_scaler")
 
         self.device = torch.device("cuda:0"
                                    if torch.cuda.is_available()
                                    else "cpu")
 
-        print(self.device)
+        print(f"using device: {self.device}")
 
-        self.initialize_model()
+        if isfile(data_path):
+            (self.X_train,
+             self.y_train,
+             self.joint_scaler,
+             self.torque_scaler,
+             self.ee_location_scaler) = \
+                dataloader.load_training_data(
+                    data_path = data_path,
+                    normalize  = True)
 
-    def initialize_model(self):
+        elif isdir(data_path):
+            (self.X_train,
+             self.X_test,
+             self.y_train,
+             self.y_test,
+             self.joint_scaler,
+             self.torque_scaler,
+             self.ee_location_scaler) = \
+                dataloader.load_data_directory(data_path)
 
-        self.X_train, self.y_train, self.joint_scaler, self.torque_scaler, self.ee_location_scaler = \
-            dataloader.load_training_data(train_path = self.train_path,
-                                          normalize  = True)
+        else:
+            raise ValueError("invalid path: " + data_path)
 
-        self.X_test, self.y_test, self.joint_scaler, self.torque_scaler, self.ee_location_scaler = \
-            dataloader.load_test_data(test_path = self.test_path,
-                                      normalize = True)
+        self.X_train = self.X_train.to(self.device, dtype=torch.float64)
+        self.y_train = self.y_train.to(self.device, dtype=torch.float64)
 
-        # Use whole data directory instead
-        self.X_train, self.X_test, self.y_train, self.y_test, self.joint_scaler, self.torque_scaler, self.ee_location_scaler = \
-            dataloader.load_data_directory(self.data_directory)
+        if not saved_model_path:
+
+            self.input_feature_count = self.X_train.shape[1]
+
+            self.output_feature_count = self.y_train.shape[1]
+
+        else:
+
+            folder = dirname(join(getcwd(), saved_model_path))
+
+            metadata_path = join(folder,
+                                 Path(saved_model_path).stem
+                                 + ".joblib")
+
+            try:
+                metadata = load(filename = metadata_path)
+            except FileNotFoundError:
+                raise FileNotFoundError("Saved scalers not found!\n"
+                                        "  Expected path: " + metadata_path)
+
+            for attribute_name, attribute \
+                in zip(self.metadata_attributes, metadata):
+
+                setattr(self, attribute_name, attribute)
+
+            assert self.input_feature_count == self.X_train.shape[1]
+
+            assert self.output_feature_count == self.y_train.shape[1]
 
         self.likelihood = \
             gpytorch.likelihoods\
-            .MultitaskGaussianLikelihood(num_tasks = self.num_tasks
+            .MultitaskGaussianLikelihood(num_tasks = self.output_feature_count,
                                          ).to(device = self.device,
                                               dtype  = torch.float64)
 
         self.model = \
-            BatchIndependentMultiTaskGPModel(self.X_train,
-                                             self.y_train,
-                                             self.likelihood,
-                                             self.num_tasks,
-                                             self.ard_num_dims
-                                             ).to(self.device, torch.float64)
+            BatchIndependentMultiTaskGPModel(
+                    train_inputs  = self.X_train,
+                    train_targets = self.y_train,
+                    likelihood    = self.likelihood,
+                    num_tasks     = self.output_feature_count,
+                    ard_num_dims  = self.input_feature_count,
+                    ).to(self.device, torch.float64)
 
-        self.X_train = self.X_train.to(self.device, dtype=torch.float64)
-        self.y_train = self.y_train.to(self.device, dtype=torch.float64)
-        self.X_test = self.X_test.to(self.device, dtype=torch.float64)
-        self.y_test = self.y_test.to(self.device, dtype=torch.float64)
+        if saved_model_path:
 
-        if self.train_GP:
-            self.train()
+            state_dict = torch.load(saved_model_path)
+
+            self.model.load_state_dict(state_dict)
+
+    def train(self,
+              iterations,
+              data_path      = None,
+              save_model_to  = None,
+              plot_loss      = False):
+        '''
+        Training loop for GP. 
+        Args:
+            iterations: (int) Training loop iterations
+            data_path: Path to trajectory data
+            save_model_to: Path to save trained model parameters to 
+            plot_loss (bool): Plot loss function or not  
+        '''
+
+        if data_path is None:
+            if self.X_train is None:
+                raise TypeError("data_path must be provided to train!")
+
         else:
-            self.load_model()
 
-    def train(self):
+            # TODO pass existing scalers from pretrained model to dataloader!!!
+
+            if isfile(data_path):
+
+                # ignore returned scalers, keep scalers from pretrained model
+                (self.X_train, self.y_train, _, _, _) = \
+                    dataloader.load_training_data(
+                        data_path = data_path,
+                        normalize  = True)
+
+            elif isdir(data_path):
+
+                # ignore returned scalers and testing dataset
+                (self.X_train, _, self.y_train, _, _, _, _) = \
+                    dataloader.load_data_directory(data_path)
+
+            else:
+                raise ValueError("invalid path: " + data_path)
+
+            self.X_train = self.X_train.to(self.device, dtype=torch.float64)
+            self.y_train = self.y_train.to(self.device, dtype=torch.float64)
+
+            assert self.input_feature_count == self.X_train.shape[1]
+
+            assert self.output_feature_count == self.y_train.shape[1]
+
+            self.model.set_train_data(inputs  = self.X_train,
+                                      targets = self.y_train,
+                                      strict  = False)
 
         self.model.train()
+
         self.likelihood.train()
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=0.1)
@@ -79,13 +174,12 @@ class GPModel:
 
         self.loss_history = []
 
-        for i in range(self.training_iter):
+        for i in range(iterations):
             optimizer.zero_grad()
             output = self.model(self.X_train)
             loss = -loss_metric(output, self.y_train)
             loss.backward()
-            print('Iter %d/%d - Loss: %.3f'
-                  % (i + 1, self.training_iter, loss.item()))
+            print(f"iteration {i + 1} / {iterations} - Loss: {loss.item()}")
             optimizer.step()
             self.loss_history.append(loss.item())
 
@@ -96,28 +190,86 @@ class GPModel:
         self.model.eval()
         self.likelihood.eval()
 
-        # Save trained model
-        # torch.save(self.model.state_dict(),
-        #            'trained_models/two_joints_GP.pth')
+        if save_model_to:
 
-    def plot_training_results(self):
-        return
-        # Plot for training loss
-        _, ax_loss = plt.subplots(figsize=(6, 4))
-        if not self.train_GP:
-            self.loss_history = []
-        ax_loss.plot(self.loss_history, label='Training Loss')
-        ax_loss.set_title('GP Training Loss Over Iterations')
-        ax_loss.set_xlabel('Iteration')
-        ax_loss.set_ylabel('Loss')
-        ax_loss.legend()
-        plt.show()
+            folder = dirname(join(getcwd(), save_model_to))
+
+            if not isdir(folder):
+                mkdir(folder)
+
+            torch.save(self.model.state_dict(), save_model_to)
+
+            metadata = tuple(getattr(self, attribute)
+                            for attribute in self.metadata_attributes)
+
+            dump(value    = metadata,
+                 filename = join(folder,
+                                 Path(save_model_to).stem
+                                 + ".joblib"))
+
+        if plot_loss:
+
+            # Plot for training loss
+            _, ax_loss = plt.subplots(figsize=(6, 4))
+
+            ax_loss.plot(self.loss_history, label='Training Loss')
+            ax_loss.set_title('Training Loss Over Iterations')
+            ax_loss.set_xlabel('Iteration')
+            ax_loss.set_ylabel('Loss')
+            ax_loss.legend()
+
+            plt.show()
+
+    def test(self, data_path=None, plot=False):
+        '''
+        evaluate a trained Gaussian Process model on testing data
+
+        Args:
+            data_path: path for testing data
+            plot (bool): whether to plot predicted means
+        '''
+
+        if data_path is None:
+            if not hasattr(self, "X_test"):
+                raise TypeError("data_path must be provided to test!")
+
+        else:
+
+            # TODO pass existing scalers from pretrained model to dataloader!!!
+
+            if isfile(data_path):
+
+                # ignore returned scalers, keep scalers from training
+                (self.X_test,
+                 self.y_test,
+                 _, _, _) = \
+                    dataloader.load_testing_data(
+                        data_path = data_path,
+                        normalize  = True)
+
+            elif isdir(data_path):
+
+                # ignore returned scalers and training dataset
+                (_, self.X_test, _, self.y_test, _, _, _) = \
+                    dataloader.load_data_directory(data_path)
+
+            else:
+                raise ValueError("invalid path: " + data_path)
+
+        self.X_test = self.X_test.to(self.device, dtype=torch.float64)
+        self.y_test = self.y_test.to(self.device, dtype=torch.float64)
 
         # Plot for tasks
-        tasks = ["x_boom", "y_boom", "theta1", "theta2", "xt2"]
-        _, axes_tasks = plt.subplots(1, len(tasks), figsize=(12, 4))
+        tasks = ["End-effector x-location", "End-effector y-location"]
+
+        self.model.eval()
+        self.likelihood.eval()
+
+        if plot:
+            _, axes_tasks = plt.subplots(1, len(tasks), figsize=(12, 4))
 
         for i, task in enumerate(tasks):
+
             # Make predictions for each task
             with torch.no_grad(), gpytorch.settings.fast_pred_var():
                 test_x = torch.linspace(0, 1, len(self.X_test[:, 0]))
@@ -125,44 +277,42 @@ class GPModel:
                 mean = predictions.mean
                 lower, upper = predictions.confidence_region()
 
-            # Plot training data as black stars
-            axes_tasks[i].plot(test_x.cpu().numpy(),
-                               self.y_test[:, i].cpu().numpy(), 'k*')
+            if plot:
 
-            axes_tasks[i].plot(test_x.cpu().numpy(),
-                               mean[:, i].cpu().numpy(), 'b')
+                # Plot training data as black stars
+                axes_tasks[i].plot(test_x.cpu().numpy(),
+                                   self.y_test[:, i].cpu().numpy(), 'k*')
 
-            # Shade in confidence
-            axes_tasks[i].fill_between(test_x.cpu().numpy(),
-                                       lower[:, i].cpu().numpy(),
-                                       upper[:, i].cpu().numpy(),
-                                       alpha=0.5)
+                axes_tasks[i].plot(test_x.cpu().numpy(),
+                                   mean[:, i].cpu().numpy(), 'b')
 
-            axes_tasks[i].set_ylim([-0.2, 1.3])
-            axes_tasks[i].legend(['Observed Data', 'Mean', 'Confidence'])
-            axes_tasks[i].set_title('Observed Values (Likelihood), ' + task)
+                # Shade in confidence
+                axes_tasks[i].fill_between(test_x.cpu().numpy(),
+                                           lower[:, i].cpu().numpy(),
+                                           upper[:, i].cpu().numpy(),
+                                           alpha=0.5)
+
+                axes_tasks[i].set_ylim([-0.2, 1.3])
+                axes_tasks[i].legend(["Observed Data", "Mean", "Confidence"])
+                axes_tasks[i].set_title("Observed Values (Likelihood), "
+                                        f"{task}")
 
         plt.show()
 
     def predict(self, X):
-        with gpytorch.settings.fast_pred_var():  # torch.no_grad(),
-            X = X.to(self.device, dtype=torch.float64)
-            observed_pred = self.likelihood(self.model(X))
-            
-        return observed_pred
+        '''
+        predicts next end-effector location and next joint values,
+        given current joint state and torques applied
 
-    def load_model(self):
+        Args:
+            X: Input sample (3x joint values + 3x joint torques)
+        Returns:
+            predicted next end-effector location & corresponding joint values
+        '''
 
-        state_dict = torch.load(self.model_path)
-
-        self.model = BatchIndependentMultiTaskGPModel(self.X_train,
-                                                      self.y_train,
-                                                      self.likelihood,
-                                                      self.num_tasks,
-                                                      self.ard_num_dims
-                                                      ).to(self.device,
-                                                           torch.float64)
-
-        self.model.load_state_dict(state_dict)
         self.model.eval()
         self.likelihood.eval()
+
+        prediction = self.likelihood(self.model(X))
+
+        return prediction

@@ -4,9 +4,7 @@ from GP_model.GPController import GPModel
 from RL.policy import PolicyNetwork
 from data import dataloader
 
-# Initial RL testing values
-# x_boom = 2.1 y_boom = 3.5
-# x_boom = 3.0 y_boom = 2.4
+TRAIN_NEW_MODEL = False
 
 
 def get_configs():
@@ -14,25 +12,31 @@ def get_configs():
 
 
 def main(configuration):
-    """Collective controller for GP model and RL controller"""
+    """train the RL-based controller"""
 
-    # Initialize and train model or load pre-trained model
-    gpmodel = GPModel(**configuration)
+    if TRAIN_NEW_MODEL:
 
-    gpmodel.plot_training_results()
+      gp_model = GPModel(data_path = configuration["data_path"])
 
+      gp_model.train(iterations    = configuration["GP"]["iterations"],
+                     save_model_to = configuration["GP"]["model_path"],
+                     plot_loss     = True)
 
-    # print(gpmodel.predict([0, 0, 0, 1, 1, 1]))
-    configuration["gp_model"] = gpmodel
-    
-    policy_network = PolicyNetwork(**configuration)
+    else:
+
+      gp_model = GPModel(data_path        = configuration["data_path"],
+                         saved_model_path = configuration["GP"]["model_path"])
+
+    policy_network = \
+        PolicyNetwork(gp_model      = gp_model,
+                      iterations    = configuration["RL"]["iterations"],
+                      trials        = configuration["RL"]["trials"],
+                      learning_rate = configuration["RL"]["learning_rate"])
 
     policy_network.optimize_policy()
 
 
 if __name__ == "__main__":
-
-    # TODO: Separate GP and RL configs
 
     with open("configuration.yaml") as configuration_file:
 
