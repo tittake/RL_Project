@@ -4,20 +4,26 @@ import torch
 
 class BatchIndependentMultiTaskGPModel(gpytorch.models.ExactGP):
 
-    def __init__(self, X_train, y_train, likelihood, num_tasks, ard_num_dims):
+    def __init__(self,
+                 train_inputs,
+                 train_targets,
+                 likelihood,
+                 num_tasks,
+                 ard_num_dims):
 
-        super(BatchIndependentMultiTaskGPModel,
-              self).__init__(X_train, y_train, likelihood)
+        super().__init__(train_inputs  = train_inputs,
+                         train_targets = train_targets,
+                         likelihood    = likelihood)
 
         self.mean_module = gpytorch.means.ConstantMean(
-            batch_shape=torch.Size([num_tasks])
-        )
+            batch_shape=torch.Size([num_tasks]))
+
+        # ard stands for "Automatic Relevance Determination"
         self.cov_module = gpytorch.kernels.ScaleKernel(
             gpytorch.kernels.RBFKernel(
-                batch_shape=torch.Size([num_tasks]), ard_num_dims=ard_num_dims
-            ),
-            batch_shape=torch.Size([num_tasks]),
-        )
+                batch_shape  = torch.Size([num_tasks]),
+                ard_num_dims = ard_num_dims),
+            batch_shape = torch.Size([num_tasks]))
 
     def forward(self, x):
 
@@ -26,5 +32,5 @@ class BatchIndependentMultiTaskGPModel(gpytorch.models.ExactGP):
 
         return \
             gpytorch.distributions.MultitaskMultivariateNormal.from_batch_mvn(
-              gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-              )
+                gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+                )
