@@ -9,7 +9,8 @@ from RL.configs import get_controller_params
 
 from data import dataloader
 from RL.controller import RLController
-# from RL.utils import plot_policy
+from RL.utils import generate_initial_values
+
 from GP_model.GPController import GPModel
 import matplotlib.pyplot as plt
 
@@ -179,16 +180,18 @@ class PolicyNetwork:
     def reset(self):
 
         """set initial & goal states"""
+        
+        data_path = "trajectories/10Hz/all_joints"
+        generated_values = generate_initial_values(data_path)
+        initial_ee = [generated_values["boom_x"], generated_values["boom_y"]]
+        initial_joints = [generated_values["theta1"], generated_values["theta2"], generated_values["xt2"]]
 
         self.initial_joint_state = \
-            torch.tensor([ 0.27417417576467,
-                           0.116512288066668,
-                          -0.0584903062530507],
+            torch.tensor(initial_joints,
                          dtype=self.dtype)
 
         self.initial_ee_location = \
-            torch.tensor([[3.05775717244459,
-                           2.25868490166918]],
+            torch.tensor([initial_ee],
                          dtype=self.dtype)
 
         self.target_ee_location = \
