@@ -59,6 +59,8 @@ class PolicyNetwork:
 
         all_optim_data = {"all_optimizer_data": []}
 
+        axs = None 
+        
         for trial in range(trials):
 
             self.reset()
@@ -76,6 +78,9 @@ class PolicyNetwork:
             optimInfo = {"loss": [], "time": []}
 
             self.controller.train()
+
+            start_model_training = time.perf_counter()
+
 
             for i in range(self.iterations):
 
@@ -115,10 +120,10 @@ class PolicyNetwork:
                 "trial": trial,
             }
 
+            
+            all_optim_data["all_optimizer_data"].append(trial_save_info)
+            
             if False:
-
-                all_optim_data["all_optimizer_data"].append(trial_save_info)
-
                 _, ax_loss = plt.subplots(figsize=(6, 4))
 
                 ax_loss.plot(optimInfo["loss"], label='Training Loss')
@@ -133,20 +138,53 @@ class PolicyNetwork:
 
         # TODO: better printing function
         # print("Optimized data: ", all_optim_data)
+                
+        end_model_training = time.perf_counter()
+        elapsed_model_training = end_model_training - start_model_training
+        print("Training time: ", elapsed_model_training)
+
+            # Plot losses from all iterations for each trial at the end
+        if isinstance(axs, np.ndarray):
+            # Multiple subplots
+            fig, axs = plt.subplots(len(all_optim_data["all_optimizer_data"]), 1, figsize=(8, 6 * len(all_optim_data["all_optimizer_data"])))
+            fig.suptitle('Loss Subplots', y=0.92)
+            fig.tight_layout(pad=3.0)
+
+            for idx, trial_save_info in enumerate(all_optim_data["all_optimizer_data"]):
+                ax = axs[idx]
+                ax.set_title(f'Trial {trial_save_info["trial"]}')
+                ax.set_xlabel('Iteration')
+                ax.set_ylabel('Loss')
+                losses = trial_save_info["optimInfo"]["loss"]
+                ax.plot(range(1, len(losses) + 1), losses)
+        else:
+            # Single subplot
+            fig, ax = plt.subplots(figsize=(8, 6))
+            fig.suptitle('Loss Subplots', y=0.92)
+            ax.set_title(f'Trial {all_optim_data["all_optimizer_data"][0]["trial"]}')
+            ax.set_xlabel('Iteration')
+            ax.set_ylabel('Loss')
+            losses = all_optim_data["all_optimizer_data"][0]["optimInfo"]["loss"]
+            ax.plot(range(1, len(losses) + 1), losses)
+
+        plt.show()
+
 
     def calculate_step_reward(self):
         """calculate and return reward for a single time step"""
 
         self.joint_state = self.joint_state.to(self.device, dtype=self.dtype).detach()
-        print(f"joint state: {self.joint_state.detach().numpy()}")
+        print(f"joint state: {self.joint_state.cpu().numpy()}")
 
         action = self.controller(self.joint_state)
 
-        print(f"action: {action.detach().numpy()}")
+        #print(f"action: {action.detach().numpy()}")
+        print(f"action: {action.to('cpu').detach().numpy()}")
+
 
         inputs = torch.unsqueeze(torch.cat([self.joint_state, action]), dim=0)
 
-        print(f"inputs: {inputs.detach().numpy()[0]}")
+        print(f"inputs: {inputs.to('cpu').detach().numpy()[0]}")
 
         # predict next state
 
@@ -155,13 +193,13 @@ class PolicyNetwork:
         self.ee_location = predictions.mean[0, 0:2]
         self.joint_state = predictions.mean[0, 2:]
 
-        print(f"joint state: {self.joint_state.detach().numpy()}")
+        print(f"joint state: {self.joint_state.to('cpu').detach().numpy()}")
 
         print("current EE location: "
-              f"{self.ee_location.detach().numpy()}")
+              f"{self.ee_location.to('cpu').detach().numpy()}")
 
         print("   goal EE location: "
-              f"{self.target_ee_location.detach().numpy()[0]}")
+              f"{self.target_ee_location.to('cpu').detach().numpy()[0]}")
 
         self.ee_location = self.ee_location.to(self.device,
                                                dtype=torch.float64)

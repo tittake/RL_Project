@@ -260,7 +260,7 @@ class GPModel:
         self.y_test = self.y_test.to(self.device, dtype=torch.float64)
 
         # Plot for tasks
-        tasks = ["End-effector x-location", "End-effector y-location"]
+        tasks = ["End-effector x-location", "End-effector y-location", "theta1", "theta2", "xt2"]
 
         self.model.eval()
         self.likelihood.eval()
