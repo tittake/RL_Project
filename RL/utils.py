@@ -58,7 +58,7 @@ def generate_initial_values(folder_path):
                 values = {column: float(second_row[column]) for column in columns_to_extract}
                 extracted_values.append(values)
             except StopIteration:
-                print(f"File {csv_file} is empty or has only one row.")
+                print(f"File {csv_file} is empty")
 
     return random.choice(extracted_values)
 

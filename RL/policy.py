@@ -219,8 +219,8 @@ class PolicyNetwork:
 
         """set initial & goal states"""
         
-        data_path = "trajectories/10Hz/all_joints"
-        generated_values = generate_initial_values(data_path)
+        generate_data_path = "trajectories/10Hz/all_joints"
+        generated_values = generate_initial_values(generate_data_path)
         initial_ee = [generated_values["boom_x"], generated_values["boom_y"]]
         initial_joints = [generated_values["theta1"], generated_values["theta2"], generated_values["xt2"]]
 
