@@ -9,6 +9,7 @@ from joblib import dump, load
 import gpytorch
 import matplotlib.pyplot as plt
 import torch
+from tqdm import tqdm
 
 import data.dataloader as dataloader
 
@@ -175,14 +176,16 @@ class GpModel:
 
         self.loss_history = []
 
-        for i in range(iterations):
-            optimizer.zero_grad()
-            output = self.model(self.X_train)
-            loss = -loss_metric(output, self.y_train)
-            loss.backward()
-            print(f"iteration {i + 1} / {iterations} - Loss: {loss.item()}")
-            optimizer.step()
-            self.loss_history.append(loss.item())
+        with tqdm(total = iterations) as progress_bar:
+            for _ in range(iterations):
+                optimizer.zero_grad()
+                output = self.model(self.X_train)
+                loss = -loss_metric(output, self.y_train)
+                progress_bar.set_description(f"loss: {loss.item()}")
+                loss.backward()
+                optimizer.step()
+                progress_bar.update()
+                self.loss_history.append(loss.item())
 
         end_model_training = time.perf_counter()
         elapsed_model_training = end_model_training - start_model_training
