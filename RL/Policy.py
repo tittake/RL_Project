@@ -1,3 +1,5 @@
+"""module containing reinforcement learning policy class"""
+
 from copy import deepcopy
 import time
 import torch
@@ -11,6 +13,7 @@ import matplotlib.pyplot as plt
 
 
 class PolicyNetwork:
+    """reinforcement learning policy"""
 
     def __init__(self,
                  gp_model: GpModel,
@@ -44,9 +47,7 @@ class PolicyNetwork:
                          control_output_count = control_output_count)
 
     def optimize_policy(self):
-        """
-        Optimize controller parameters
-        """
+        """optimize controller parameters"""
 
         trials = self.trials
 

@@ -1,3 +1,5 @@
+"""alternative GP architecture to learn relations between multiple outputs"""
+
 import gpytorch
 
 

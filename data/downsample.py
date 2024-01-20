@@ -3,6 +3,7 @@ from sys import argv
 
 
 def save_every_tenth_row(input_csv, output_csv):
+    """writes a new CSV file containing each tenth row of the input CSV file"""
 
     with (open(input_csv, 'r') as infile,
           open(output_csv, 'w', newline='') as outfile):

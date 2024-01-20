@@ -1,3 +1,5 @@
+"""a GP architecture which treats multiple outputs as independent variables"""
+
 import gpytorch
 import torch
 

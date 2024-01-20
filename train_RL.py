@@ -1,4 +1,4 @@
-"""train the RL-based controller"""
+"""train RL-based controller"""
 
 import yaml
 
@@ -7,6 +7,7 @@ from RL.Policy import PolicyNetwork
 
 
 def main(configuration):
+    """train or load GP model, then use it to train an RL model"""
 
     if configuration["RL"]["train_fresh_GP"]:
 

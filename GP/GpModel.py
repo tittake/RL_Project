@@ -1,3 +1,5 @@
+"""module containing class to model a Gaussian Process"""
+
 from os import getcwd, mkdir
 from os.path import dirname, isdir, isfile, join
 from pathlib import Path
@@ -14,13 +16,12 @@ from GP.BatchIndependentMultiTaskGP import BatchIndependentMultiTaskGpModel
 
 
 class GpModel:
+    """Gaussian Process model"""
 
     def __init__(self,
                  data_path:        str,
                  saved_model_path: str = None):
-        '''
-        Initializes Gaussian Process model.
-        '''
+        """loads data and initializes model"""
 
         self.metadata_attributes = ("input_feature_count",
                                     "output_feature_count",
@@ -115,14 +116,15 @@ class GpModel:
               data_path      = None,
               save_model_to  = None,
               plot_loss      = False):
-        '''
-        Training loop for GP.
-        Args:
+        """
+        training loop for GP
+
+        args:
             iterations: (int) Training loop iterations
             data_path: Path to trajectory data
             save_model_to: Path to save trained model parameters to
             plot_loss (bool): Plot loss function or not
-        '''
+        """
 
         if data_path is None:
             if self.X_train is None:
@@ -220,13 +222,13 @@ class GpModel:
             plt.show()
 
     def test(self, data_path=None, plot=False):
-        '''
+        """
         evaluate a trained Gaussian Process model on testing data
 
-        Args:
+        args:
             data_path: path for testing data
             plot (bool): whether to plot predicted means
-        '''
+        """
 
         if data_path is None:
             if not hasattr(self, "X_test"):
@@ -303,15 +305,15 @@ class GpModel:
         plt.show()
 
     def predict(self, X):
-        '''
+        """
         predicts next end-effector location and next joint values,
         given current joint state and torques applied
 
-        Args:
+        args:
             X: Input sample (3x joint values + 3x joint torques)
-        Returns:
+        returns:
             predicted next end-effector location & corresponding joint values
-        '''
+        """
 
         self.model.eval()
         self.likelihood.eval()

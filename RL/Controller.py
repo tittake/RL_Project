@@ -1,8 +1,11 @@
+"""module containing PyTorch neural network used for RL Q-lookup"""
+
 import torch
 from torch import nn
 
 
 class RlController(nn.Module):
+  """PyTorch neural network used for deep RL Q-lookup"""
 
     def __init__(self, state_feature_count, control_output_count):
 
@@ -48,4 +51,5 @@ class RlController(nn.Module):
         )
 
     def forward(self, inputs):
+        """feed forward"""
         return self.controller(inputs)
