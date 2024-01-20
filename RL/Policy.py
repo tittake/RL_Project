@@ -72,6 +72,8 @@ class PolicyNetwork:
 
             start_model_training = time.perf_counter()
 
+            accumulated_rewards = 0
+
             for i in range(self.iterations):
 
                 optimizer.zero_grad()
@@ -80,6 +82,8 @@ class PolicyNetwork:
                       f"/ {self.iterations}")
 
                 reward = self.calculate_step_reward()
+
+                accumulated_rewards += reward.item()
 
                 loss = -reward
 
@@ -97,10 +101,7 @@ class PolicyNetwork:
 
             # plot_policy()
 
-            print(
-                "Controller's optimization: reward=%.3f."
-                % (loss)
-            )
+            print(f"trial {trial + 1} rewards: {accumulated_rewards:.3f}\n")
 
             trial_save_info = {
                 "optimInfo": optimInfo,
@@ -195,7 +196,7 @@ class PolicyNetwork:
 
         inputs = torch.unsqueeze(torch.cat([self.joint_state, action]), dim=0)
 
-        print_value("inputs", inputs)
+        print_value("inputs", inputs[0])
 
         # predict next state
 
@@ -207,7 +208,7 @@ class PolicyNetwork:
         print_value("joint state", self.joint_state)
 
         print_value("current EE location", self.ee_location)
-        print_value("   goal EE location", self.target_ee_location)
+        print_value("   goal EE location", self.target_ee_location[0])
 
         self.ee_location = self.ee_location.to(self.device,
                                                dtype=torch.float64)
