@@ -10,9 +10,11 @@ import torch
 min_max_joint_scaler = MinMaxScaler()
 min_max_torque_scaler = MinMaxScaler()
 min_max_ee_location_scaler = MinMaxScaler()
+min_max_velocity_scaler = MinMaxScaler()
+min_max_acceleration_scaler = MinMaxScaler()
 
-X_names = ["theta1", "theta2", "xt2", "fc1", "fc2", "fct2"]
-y_names = ["boom_x", "boom_y", "theta1", "theta2", "xt2"]
+X_names = ["theta1", "theta2", "xt2", "fc1", "fc2", "fct2", "boom_x_velocity",  "boom_y_velocity", "boom_x_acceleration", "boom_y_acceleration"]
+y_names = ["boom_x", "boom_y", "theta1", "theta2", "xt2", "boom_x_velocity",  "boom_y_velocity", "boom_x_acceleration", "boom_y_acceleration"]
 
 
 def normalize_data(X, y, testing):
@@ -35,25 +37,37 @@ def normalize_data(X, y, testing):
 
         joints = min_max_joint_scaler.fit_transform(X[:, 0:3])
 
-        torques = min_max_torque_scaler.fit_transform(X[:, 3:])
+        torques = min_max_torque_scaler.fit_transform(X[:, 3:6])
 
-        X = np.concatenate((joints, torques), axis=1)
+        ee_velocities = min_max_velocity_scaler.fit_transform(X[:, 6:8])
+
+        ee_accelerations =  min_max_acceleration_scaler.fit_transform(X[:,8:10])
+
+        print(joints.shape)
+        print(torques.shape)
+        print(ee_velocities.shape)
+        print(ee_accelerations.shape)    
+        X = np.concatenate((joints, torques, ee_velocities, ee_accelerations), axis=1)
 
         ee_location = min_max_ee_location_scaler.fit_transform(y[:, 0:2])
 
-        y = np.concatenate((ee_location, joints), axis=1)
+        y = np.concatenate((ee_location, joints, ee_velocities, ee_accelerations), axis=1)
 
     else:
 
         joints = min_max_joint_scaler.transform(X[:, 0:3])
 
-        torques = min_max_torque_scaler.transform(X[:, 3:])
+        torques = min_max_torque_scaler.transform(X[:, 3:6])
 
-        X = np.concatenate((joints, torques), axis=1)
+        ee_velocities = min_max_velocity_scaler.transform(X[:, 6:8])
+
+        ee_accelerations =  min_max_acceleration_scaler.transform(X[:,8:10])
+
+        X = np.concatenate((joints, torques, ee_velocities, ee_accelerations), axis=1)
 
         ee_location = min_max_ee_location_scaler.transform(y[:, 0:2])
 
-        y = np.concatenate((ee_location, joints), axis=1)
+        y = np.concatenate((ee_location, joints, ee_velocities, ee_accelerations), axis=1)
 
     X = torch.tensor(X, dtype=torch.double)
     y = torch.tensor(y, dtype=torch.double)

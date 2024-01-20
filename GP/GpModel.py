@@ -268,7 +268,11 @@ class GpModel:
                  "end-effector y-location",
                  "theta1",
                  "theta2",
-                 "xt2"]
+                 "xt2",
+                 "boom_x_velocity",  
+                 "boom_y_velocity", 
+                 "boom_x_acceleration", 
+                 "boom_y_acceleration"]
 
         self.model.eval()
         self.likelihood.eval()
