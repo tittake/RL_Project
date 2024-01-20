@@ -3,14 +3,12 @@
 import yaml
 
 from GP.GpModel import GpModel
-from RL.policy import PolicyNetwork
-
-TRAIN_NEW_MODEL = True
+from RL.Policy import PolicyNetwork
 
 
 def main(configuration):
 
-    if TRAIN_NEW_MODEL:
+    if configuration["RL"]["train_fresh_GP"]:
 
         gp_model = GpModel(data_path = configuration["data_path"])
 
@@ -28,6 +26,7 @@ def main(configuration):
 
     policy_network = \
         PolicyNetwork(gp_model      = gp_model,
+                      data_path     = configuration["data_path"],
                       iterations    = configuration["RL"]["iterations"],
                       trials        = configuration["RL"]["trials"],
                       learning_rate = configuration["RL"]["learning_rate"])

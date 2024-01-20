@@ -3,9 +3,7 @@ import time
 import torch
 import numpy as np
 
-from RL.configs import get_controller_params
-
-from RL.controller import RLController
+from RL.Controller import RlController
 from RL.utils import generate_initial_values
 
 from GP.GpModel import GpModel
@@ -14,17 +12,25 @@ import matplotlib.pyplot as plt
 
 class PolicyNetwork:
 
-    def __init__(self, gp_model, iterations, trials, learning_rate = 0.1):
+    def __init__(self,
+                 gp_model: GpModel,
+                 data_path: str,
+                 state_feature_count: int  = 3,
+                 control_output_count: int = 3,
+                 trials: int               = 100,
+                 iterations: int           = 1000,
+                 learning_rate: float      = 0.1):
 
         super().__init__()
 
-        self.gp_model = gp_model
-        self.iterations = iterations
-        self.trials = trials
+        self.gp_model      = gp_model
+        self.data_path     = data_path
+        self.iterations    = iterations
+        self.trials        = trials
         self.learning_rate = learning_rate
 
-        self.joint_scaler = self.gp_model.joint_scaler
-        self.torque_scaler = self.gp_model.torque_scaler
+        self.joint_scaler       = self.gp_model.joint_scaler
+        self.torque_scaler      = self.gp_model.torque_scaler
         self.ee_location_scaler = self.gp_model.ee_location_scaler
 
         self.device = torch.device("cuda:0"
@@ -33,19 +39,9 @@ class PolicyNetwork:
 
         self.dtype = torch.double
 
-        self.controller_params = get_controller_params()
-        self.controller = self.get_controller()
-        # self.gp_model = self.get_gp_model(**params)
-
-    def get_controller(self):
-        controller = RLController(**self.controller_params)
-        RLmodel = controller.init_controller()
-        return RLmodel
-
-    def get_gp_model(self, **params):
-        model = GpModel(**params)
-        model.initialize_model()
-        return model
+        self.controller = \
+            RlController(state_feature_count  = state_feature_count,
+                         control_output_count = control_output_count)
 
     def optimize_policy(self):
         """
@@ -230,9 +226,7 @@ class PolicyNetwork:
     def reset(self):
         """set initial & goal states"""
 
-        generate_data_path = "trajectories/10Hz/all_joints"
-
-        generated_values = generate_initial_values(generate_data_path)
+        generated_values = generate_initial_values(self.data_path)
 
         initial_ee = [generated_values["boom_x"], generated_values["boom_y"]]
 
