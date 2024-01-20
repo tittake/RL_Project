@@ -48,4 +48,4 @@ class RlController(nn.Module):
         )
 
     def forward(self, inputs):
-        return(self.controller(inputs))
+        return self.controller(inputs)

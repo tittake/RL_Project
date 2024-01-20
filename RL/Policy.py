@@ -14,12 +14,12 @@ class PolicyNetwork:
 
     def __init__(self,
                  gp_model: GpModel,
-                 data_path: str,
-                 state_feature_count: int  = 3,
+                 data_path:            str,
+                 state_feature_count:  int = 3,
                  control_output_count: int = 3,
-                 trials: int               = 100,
-                 iterations: int           = 1000,
-                 learning_rate: float      = 0.1):
+                 trials:               int = 100,
+                 iterations:           int = 1000,
+                 learning_rate:      float = 0.1):
 
         super().__init__()
 
