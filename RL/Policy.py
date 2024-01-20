@@ -4,7 +4,7 @@ import torch
 import numpy as np
 
 from RL.Controller import RlController
-from RL.utils import generate_initial_values
+from RL.utils import get_random_state
 
 from GP.GpModel import GpModel
 import matplotlib.pyplot as plt
@@ -226,25 +226,12 @@ class PolicyNetwork:
     def reset(self):
         """set initial & goal states"""
 
-        generated_values = generate_initial_values(self.data_path)
-
-        initial_ee = [generated_values["boom_x"], generated_values["boom_y"]]
-
-        initial_joints = [generated_values["theta1"],
-                          generated_values["theta2"],
-                          generated_values["xt2"]]
+        random_state = get_random_state(self.data_path)
 
         self.initial_joint_state = \
-            torch.tensor(initial_joints,
-                         dtype=self.dtype)
-
-        self.initial_ee_location = \
-            torch.tensor([initial_ee],
-                         dtype=self.dtype)
-
-        self.target_ee_location = \
-            torch.tensor([[2.14813625484604,
-                           3.5346459005167]],
+            torch.tensor([random_state["theta1"],
+                          random_state["theta2"],
+                          random_state["xt2"]],
                          dtype=self.dtype)
 
         self.initial_joint_state = \
@@ -252,7 +239,21 @@ class PolicyNetwork:
                 .transform(self.initial_joint_state.view(1, -1).numpy())[0, :]
 
         self.initial_ee_location = \
+            torch.tensor([
+              [random_state["boom_x"],
+               random_state["boom_y"]]
+              ], dtype=self.dtype)
+
+        self.initial_ee_location = \
             self.ee_location_scaler.transform(self.initial_ee_location)
+
+        random_state = get_random_state(self.data_path)
+
+        self.target_ee_location = \
+            torch.tensor([
+              [random_state["boom_x"],
+               random_state["boom_y"]]
+              ], dtype=self.dtype)
 
         self.target_ee_location = \
             self.ee_location_scaler.transform(self.target_ee_location)

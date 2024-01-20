@@ -30,29 +30,28 @@ def plot_policy(controller, model, trial=1):
     ax.plot(inputs, actions)
 
 
-def generate_initial_values(folder_path):
-    """generate initial state for RL training"""
+def get_random_state(folder_path):
+    """scrape state from initial & final states in dataset for RL training"""
 
     if not os.path.exists(folder_path):
         print(f"The folder {folder_path} does not exist.")
         return None
 
-    # List all files in the folder
     files = os.listdir(folder_path)
 
     csv_files = [file for file in files if file.endswith('.csv')]
 
     if not csv_files:
-        print(f"No CSV files found in the folder {folder_path}.")
-        return None
+        raise ValueError("no CSV files found in folder: " + folder_path)
 
     columns_to_extract = ["boom_x", "boom_y", "theta1", "theta2", "xt2"]
+
     extracted_values = []
 
     for csv_file in csv_files:
 
         file_path = os.path.join(folder_path, csv_file)
-
+        
         with open(file_path, 'r', newline='') as file:
 
             csv_reader = csv.DictReader(file)
@@ -61,10 +60,15 @@ def generate_initial_values(folder_path):
 
                 second_row = next(csv_reader)
 
-                values = {column: float(second_row[column])
-                          for column in columns_to_extract}
+                for last_row in csv_reader:
+                    pass
 
-                extracted_values.append(values)
+                for row in (second_row, last_row):
+
+                  values = {column: float(second_row[column])
+                            for column in columns_to_extract}
+
+                  extracted_values.append(values)
 
             except StopIteration:
                 print(f"File {csv_file} is empty")
