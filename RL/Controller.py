@@ -5,7 +5,7 @@ from torch import nn
 
 
 class RlController(nn.Module):
-  """PyTorch neural network used for deep RL Q-lookup"""
+    """PyTorch neural network used for deep RL Q-lookup"""
 
     def __init__(self, state_feature_count, control_output_count):
 
