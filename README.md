@@ -22,13 +22,14 @@ Install Python dependencies:
 
 ## Data
 
-Data, consisting of randomly-generated trajectories, as well as trained models,
-are stored on
-[OneDrive](https://tuni-my.sharepoint.com/:f:/r/personal/casey_jones_tuni_fi/Documents/Robotics%20Project%20Work?csf=1&web=1&e=zH1AgD).
+CSV data, each file containing a randomly-generated trajectory
+from the SimuLink model, are stored on
+[OneDrive](https://tuni-my.sharepoint.com/:f:/r/personal/casey_jones_tuni_fi/Documents/Robotics%20Project%20Work?csf=1&web=1&e=zH1AgD),
+along with pretrained GP and RL models.
 
 Please notify us in case of any permissions or access issues.
 
-The basic folder hierarchy is as follows:
+The basic folder hierarchy in the cloud storage is as follows:
 
     ├── trained_models
     └── trajectories
