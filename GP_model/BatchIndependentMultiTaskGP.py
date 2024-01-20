@@ -32,5 +32,4 @@ class BatchIndependentMultiTaskGPModel(gpytorch.models.ExactGP):
 
         return \
             gpytorch.distributions.MultitaskMultivariateNormal.from_batch_mvn(
-                gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-                )
+                gpytorch.distributions.MultivariateNormal(mean_x, covar_x))

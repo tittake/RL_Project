@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+# from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 import torch
 
@@ -25,7 +25,7 @@ def normalize_data(X, y, testing):
     Returns:
         X: normalized input data
         y: normalized output data
-        min_max_joint_scaler: scaler for joint values 
+        min_max_joint_scaler: scaler for joint values
         min_max_torque_scaler: scaler for torques
         min_max_ee_location_scaler: scaler for end-effector location
     '''
@@ -65,10 +65,11 @@ def normalize_data(X, y, testing):
 
 def load_data(path):
     '''
-    Loads datafile from path to pandas dataframe
+    loads datafile from path to pandas dataframe
+
     Args:
         path: Path to datafile
-    Returns: 
+    Returns:
         Datafile in a dataframe
     '''
     return pd.read_csv(path)
@@ -76,7 +77,8 @@ def load_data(path):
 
 def load_data_directory(path):
     '''
-    Loads a directory of trajectories and separates them into testing and training data.
+    loads a directory of trajectories and separate them into testing & training
+
     Args:
         path: Path to data directory
     Returns:
@@ -84,8 +86,8 @@ def load_data_directory(path):
         X_test: GP testing inputs
         y_train: GP training outputs
         y_test: GP testing outputs
-        joint_scaler: scaler for joint values 
-        torque_scaler: scaler for torques 
+        joint_scaler: scaler for joint values
+        torque_scaler: scaler for torques
         ee_location_scaler: scaler for end-effector locations
     '''
 
@@ -140,7 +142,8 @@ def load_data_directory(path):
 
 def get_xy(data):
     '''
-    Separates dataframe into GP inputs and outputs
+    separates a dataframe into GP inputs & outputs
+
     Args:
         data: Dataframe including all values
     Returns:
@@ -167,15 +170,16 @@ def get_xy(data):
 
 def load_training_data(data_path, normalize=True):
     '''
-    Loads training data from path. 
+    loads training data from data_path
+
     Args:
         data_path: path to trajectory file
         normalize (bool): should data training data be normalized or not
-    Returns: 
+    Returns:
         X: GP training inputs
         y: GP training outputs
-        joint_scaler: scaler for joint values 
-        torque_scaler: scaler for torques 
+        joint_scaler: scaler for joint values
+        torque_scaler: scaler for torques
         ee_location_scaler: scaler for end-effector locations
     '''
 
@@ -203,15 +207,16 @@ def load_training_data(data_path, normalize=True):
 
 def load_testing_data(data_path, normalize=False):
     '''
-    Loads testing data from path. 
+    loads testing data from data_path
+
     Args:
         data_path: path to trajectory file
         normalize (bool): should data testing data be normalized or not
-    Returns: 
+    Returns:
         X: GP testing inputs
         y: GP testing outputs
-        joint_scaler: scaler for joint values 
-        torque_scaler: scaler for torques 
+        joint_scaler: scaler for joint values
+        torque_scaler: scaler for torques
         ee_location_scaler: scaler for end-effector locations
     '''
 
@@ -236,7 +241,8 @@ def load_testing_data(data_path, normalize=False):
 
 def plot_X_train_vs_time(X, names):
     '''
-    Plots dataset values against time, each column in a separate subplot.
+    plots dataset values against time, each column in a separate subplot
+
     Args:
         X: Data to plot
         names: Column names

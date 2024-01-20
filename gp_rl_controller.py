@@ -2,7 +2,6 @@ import yaml
 
 from GP_model.GPController import GPModel
 from RL.policy import PolicyNetwork
-from data import dataloader
 
 TRAIN_NEW_MODEL = True
 
@@ -16,16 +15,17 @@ def main(configuration):
 
     if TRAIN_NEW_MODEL:
 
-      gp_model = GPModel(data_path = configuration["data_path"])
+        gp_model = GPModel(data_path = configuration["data_path"])
 
-      gp_model.train(iterations    = configuration["GP"]["iterations"],
-                     save_model_to = configuration["GP"]["model_path"],
-                     plot_loss     = True)
+        gp_model.train(iterations    = configuration["GP"]["iterations"],
+                       save_model_to = configuration["GP"]["model_path"],
+                       plot_loss     = True)
 
     else:
 
-      gp_model = GPModel(data_path        = configuration["data_path"],
-                         saved_model_path = configuration["GP"]["model_path"])
+        gp_model = \
+            GPModel(data_path        = configuration["data_path"],
+                    saved_model_path = configuration["GP"]["model_path"])
 
     gp_model.test(plot=True)
 
@@ -34,7 +34,6 @@ def main(configuration):
                       iterations    = configuration["RL"]["iterations"],
                       trials        = configuration["RL"]["trials"],
                       learning_rate = configuration["RL"]["learning_rate"])
-
 
     policy_network.optimize_policy()
 

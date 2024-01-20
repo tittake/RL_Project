@@ -1,16 +1,16 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import numpy as np
 
 
 class RLController:
-    def __init__(self, **params):
-        super(RLController, self).__init__()
-        for key, value in params.items():
-            setattr(self, key, value)
 
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    def __init__(self):
+
+        super(RLController, self).__init__()
+
+        self.device = torch.device("cuda:0"
+                                   if torch.cuda.is_available()
+                                   else "cpu")
+
         self.dtype = torch.double
 
     def init_controller(self):
@@ -49,5 +49,3 @@ class RLController:
         self.controller.predict = self.controller.forward
 
         return self.controller
-
-

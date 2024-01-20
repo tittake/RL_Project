@@ -1,5 +1,5 @@
 from os import getcwd, mkdir
-from os.path import dirname, exists, isdir, isfile, join
+from os.path import dirname, isdir, isfile, join
 from pathlib import Path
 import time
 
@@ -20,7 +20,7 @@ class GPModel:
                  data_path:        str,
                  saved_model_path: str = None):
         '''
-        Initializes Gaussian Process model. 
+        Initializes Gaussian Process model.
         '''
 
         self.metadata_attributes = ("input_feature_count",
@@ -82,7 +82,7 @@ class GPModel:
                                         "  Expected path: " + metadata_path)
 
             for attribute_name, attribute \
-                in zip(self.metadata_attributes, metadata):
+                    in zip(self.metadata_attributes, metadata):
 
                 setattr(self, attribute_name, attribute)
 
@@ -98,12 +98,12 @@ class GPModel:
 
         self.model = \
             BatchIndependentMultiTaskGPModel(
-                    train_inputs  = self.X_train,
-                    train_targets = self.y_train,
-                    likelihood    = self.likelihood,
-                    num_tasks     = self.output_feature_count,
-                    ard_num_dims  = self.input_feature_count,
-                    ).to(self.device, torch.float64)
+                train_inputs  = self.X_train,
+                train_targets = self.y_train,
+                likelihood    = self.likelihood,
+                num_tasks     = self.output_feature_count,
+                ard_num_dims  = self.input_feature_count,
+            ).to(self.device, torch.float64)
 
         if saved_model_path:
 
@@ -117,12 +117,12 @@ class GPModel:
               save_model_to  = None,
               plot_loss      = False):
         '''
-        Training loop for GP. 
+        Training loop for GP.
         Args:
             iterations: (int) Training loop iterations
             data_path: Path to trajectory data
-            save_model_to: Path to save trained model parameters to 
-            plot_loss (bool): Plot loss function or not  
+            save_model_to: Path to save trained model parameters to
+            plot_loss (bool): Plot loss function or not
         '''
 
         if data_path is None:
@@ -200,7 +200,7 @@ class GPModel:
             torch.save(self.model.state_dict(), save_model_to)
 
             metadata = tuple(getattr(self, attribute)
-                            for attribute in self.metadata_attributes)
+                             for attribute in self.metadata_attributes)
 
             dump(value    = metadata,
                  filename = join(folder,
@@ -259,8 +259,12 @@ class GPModel:
         self.X_test = self.X_test.to(self.device, dtype=torch.float64)
         self.y_test = self.y_test.to(self.device, dtype=torch.float64)
 
-        # Plot for tasks
-        tasks = ["End-effector x-location", "End-effector y-location", "theta1", "theta2", "xt2"]
+        # plot for tasks
+        tasks = ["end-effector x-location",
+                 "end-effector y-location",
+                 "theta1",
+                 "theta2",
+                 "xt2"]
 
         self.model.eval()
         self.likelihood.eval()

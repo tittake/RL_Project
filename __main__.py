@@ -1,7 +1,9 @@
 from argparse import ArgumentParser
 
-# TODO change to package-relative imports everywhere to be able to run as module
 from GP_model.GPController import GPModel
+
+# TODO change all imports to package-relative to enable running as module
+
 
 def main():
 
@@ -33,9 +35,10 @@ def main():
                                     type    = bool,
                                     default = False)
 
-    GP_model_class_choices = ("BatchIndependentMultiTaskGP", "MultiTaskGP")
+    # TODO add support for swapping between modular model architectures
 
-    # TODO
+    # GP_model_class_choices = ("BatchIndependentMultiTaskGP", "MultiTaskGP")
+
     # GP_training_parser.add_argument("--model_class",
                                     # type    = str,
                                     # choices = GP_model_class_choices,
@@ -64,6 +67,7 @@ def main():
 
     function(**arguments)
 
+
 def train_GP(data_path:     str,
              iterations:    int,
              save_model_to: str,
@@ -78,6 +82,7 @@ def train_GP(data_path:     str,
 
     # TODO what if user wants to test the model just trained without saving it?
 
+
 def test_GP(model_path: str,
             data_path:  str,
             plot:       bool):
@@ -86,6 +91,7 @@ def test_GP(model_path: str,
 
     gp_model.test(data_path = data_path,
                   plot      = True)
+
 
 if __name__ == "__main__":
     main()
