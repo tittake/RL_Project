@@ -14,16 +14,19 @@ def add_GP_training_parser_arguments(parser):
 
     parser.set_defaults(function=train_GP)
 
-    parser.add_argument("--data_path",
+    parser.add_argument("-d",
+                        "--data_path",
                         type     = str,
                         required = True)
 
-    parser.add_argument("--iterations",
+    parser.add_argument("-i",
+                        "--iterations",
                         type     = int,
                         required = False,
                         default  = 150)
 
-    parser.add_argument("--save_model_to",
+    parser.add_argument("-s",
+                        "--save_model_to",
                         type     = str,
                         required = False)
 
@@ -74,15 +77,18 @@ def add_GP_testing_parser_arguments(parser):
 
     parser.set_defaults(function=test_GP)
 
-    parser.add_argument("--model_path",
+    parser.add_argument("-m",
+                        "--model_path",
                         type     = str,
                         required = True)
 
-    parser.add_argument("--data_path",
+    parser.add_argument("-d",
+                        "--data_path",
                         type     = str,
                         required = True)
 
-    parser.add_argument("--plot",
+    parser.add_argument("-p",
+                        "--plot",
                         type     = bool,
                         required = False,
                         default  = True)
@@ -104,28 +110,32 @@ def add_RL_training_parser_arguments(parser):
 
     parser.set_defaults(function=train_RL)
 
-    parser.add_argument("--data_path",
+    parser.add_argument("-d",
+                        "--data_path",
                         type     = str,
                         required = True)
 
-    parser.add_argument("--GP_model_path",
+    parser.add_argument("-g",
+                        "--GP_model_path",
                         "--gp_model_path",
                         dest     = "GP_model_path",
                         type     = str,
                         required = True)
 
-    parser.add_argument("--trials",
+    parser.add_argument("-t",
+                        "--trials",
                         type     = int,
                         required = False,
                         default  = 100)
 
-    parser.add_argument("--iterations",
+    parser.add_argument("-i",
+                        "--iterations",
                         type     = int,
                         required = False,
                         default  = 1000)
 
-    parser.add_argument("--learning_rate"
-                        "--lr",
+    parser.add_argument("-l",
+                        "--learning_rate",
                         dest     = "learning_rate",
                         type     = float,
                         required = False,
@@ -143,10 +153,13 @@ def train_RL(data_path:              str,
                        saved_model_path = GP_model_path)
 
     policy_network = \
-        PolicyNetwork(gp_model      = gp_model,
-                      trials        = trials,
-                      iterations    = iterations,
-                      learning_rate = learning_rate)
+        PolicyNetwork(gp_model             = gp_model,
+                      data_path            = data_path,
+                      state_feature_count  = 3, # TODO add CLI argument
+                      control_output_count = 3, # TODO add CLI argument
+                      trials               = trials,
+                      iterations           = iterations,
+                      learning_rate        = learning_rate)
 
     policy_network.optimize_policy()
 
