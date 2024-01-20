@@ -29,7 +29,7 @@ along with pretrained GP and RL models.
 
 Please notify us in case of any permissions or access issues.
 
-The basic folder hierarchy in the cloud storage is as follows:
+The folder hierarchy in the cloud storage is as follows:
 
     ├── trained_models
     └── trajectories
@@ -81,9 +81,11 @@ using Python, see [train_RL.py](train_RL.py).
 the GP model, and training the RL model.
 
 Pass either `GP` or `RL` as the first subcommand,
-then `train` or `test` for the GP model
-or `train` for the RL model,
-followed by any arguments.
+then `train` or `test`, followed by any arguments.
+
+Optional arguments are listed below in square brackets.
+
+Arguments not in brackets are required.
 
 #### train a GP model:
 
@@ -93,8 +95,8 @@ usage:
                      -d / --data_path DATA_PATH \
                      [-i / --iterations ITERATIONS] \
                      [-s / --save_model_to PATH] \
-                     [-p / --plot_loss PLOT_LOSS] \
-                     [-t / --test TEST]
+                     [-p / --plot_loss TRUE | FALSE] \
+                     [-t / --test TRUE | FALSE]
 
 example:
 
@@ -111,7 +113,7 @@ usage:
     python cli.py GP test \
                      -m / --model_path MODEL_PATH \
                      -d / --data_path DATA_PATH \
-                     [--plot PLOT]
+                     [--plot TRUE | FALSE]
 
 example:
 
@@ -123,15 +125,15 @@ example:
 
 usage:
 
-    cli.py RL train \
-              -d / --data_path DATA_PATH \
-              -g / --GP_model_path GP_MODEL_PATH \
-              [-t / --trials TRIALS] \
-              [-i / --iterations ITERATIONS] \
-              [-l / --lr / --learning_rate LEARNING_RATE]
+    python cli.py RL train \
+                     -d / --data_path DATA_PATH \
+                     -g / --GP_model_path GP_MODEL_PATH \
+                     [-t / --trials TRIALS] \
+                     [-i / --iterations ITERATIONS] \
+                     [-l / --lr / --learning_rate LEARNING_RATE]
 
 example:
 
-    python cli': python cli.py rl train \
-      --data_path trajectories/10Hz/all_joints \
-      --gp_model_path trained_models/all_joints.pth
+    python cli.py rl train \
+                     --data_path trajectories/10Hz/all_joints \
+                     --gp_model_path trained_models/all_joints.pth
