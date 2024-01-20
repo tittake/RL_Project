@@ -6,6 +6,20 @@ Robotics Project Work (KONE.533)
 
 Tampere University
 
+## Installation
+
+Clone the repository:
+
+    git clone https://github.com/tittake/RL_Project
+
+Enter the repository:
+
+    cd RL_Project
+
+Install Python dependencies:
+
+    pip install -r requirements.txt
+
 ## Data
 
 Data, consisting of randomly-generated trajectories, as well as trained models,
