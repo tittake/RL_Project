@@ -120,10 +120,10 @@ class GpModel:
         training loop for GP
 
         args:
-            iterations: (int) Training loop iterations
-            data_path: Path to trajectory data
-            save_model_to: Path to save trained model parameters to
-            plot_loss (bool): Plot loss function or not
+            iterations (int): training loop iterations
+            data_path:        path to trajectory data
+            save_model_to:    path to save trained model parameters to
+            plot_loss (bool): whether to plot the loss function
         """
 
         if data_path is None:
@@ -226,7 +226,7 @@ class GpModel:
         evaluate a trained Gaussian Process model on testing data
 
         args:
-            data_path: path for testing data
+            data_path:   path for testing data
             plot (bool): whether to plot predicted means
         """
 
@@ -310,7 +310,7 @@ class GpModel:
         given current joint state and torques applied
 
         args:
-            X: Input sample (3x joint values + 3x joint torques)
+            X: input sample (3x joint values + 3x joint torques)
         returns:
             predicted next end-effector location & corresponding joint values
         """
