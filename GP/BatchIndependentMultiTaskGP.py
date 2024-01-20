@@ -2,7 +2,7 @@ import gpytorch
 import torch
 
 
-class BatchIndependentMultiTaskGPModel(gpytorch.models.ExactGP):
+class BatchIndependentMultiTaskGpModel(gpytorch.models.ExactGP):
 
     def __init__(self,
                  train_inputs,

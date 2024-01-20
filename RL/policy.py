@@ -8,7 +8,7 @@ from RL.configs import get_controller_params
 from RL.controller import RLController
 from RL.utils import generate_initial_values
 
-from GP_model.GPController import GPModel
+from GP.GpModel import GpModel
 import matplotlib.pyplot as plt
 
 
@@ -43,7 +43,7 @@ class PolicyNetwork:
         return RLmodel
 
     def get_gp_model(self, **params):
-        model = GPModel(**params)
+        model = GpModel(**params)
         model.initialize_model()
         return model
 

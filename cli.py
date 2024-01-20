@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-from GP_model.GPController import GPModel
+from GP.GpModel import GpModel
 
 # TODO change all imports to package-relative to enable running as module
 
@@ -74,7 +74,7 @@ def train_GP(data_path:     str,
              # model_class: str, # TODO
              plot_loss:     bool):
 
-    gp_model = GPModel(training_data_path = data_path)
+    gp_model = GpModel(training_data_path = data_path)
 
     gp_model.train(iterations    = iterations,
                    save_model_to = save_model_to,
@@ -87,7 +87,7 @@ def test_GP(model_path: str,
             data_path:  str,
             plot:       bool):
 
-    gp_model = GPModel(saved_model_path = model_path)
+    gp_model = GpModel(saved_model_path = model_path)
 
     gp_model.test(data_path = data_path,
                   plot      = True)

@@ -1,7 +1,7 @@
 import gpytorch
 
 
-class ExactGPModel(gpytorch.models.ExactGP):
+class ExactGpModel(gpytorch.models.ExactGP):
 
     def __init__(self, train_inputs, train_targets, likelihood):
 

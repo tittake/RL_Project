@@ -1,21 +1,18 @@
+"""train the RL-based controller"""
+
 import yaml
 
-from GP_model.GPController import GPModel
+from GP.GpModel import GpModel
 from RL.policy import PolicyNetwork
 
 TRAIN_NEW_MODEL = True
 
 
-def get_configs():
-    return
-
-
 def main(configuration):
-    """train the RL-based controller"""
 
     if TRAIN_NEW_MODEL:
 
-        gp_model = GPModel(data_path = configuration["data_path"])
+        gp_model = GpModel(data_path = configuration["data_path"])
 
         gp_model.train(iterations    = configuration["GP"]["iterations"],
                        save_model_to = configuration["GP"]["model_path"],
@@ -24,7 +21,7 @@ def main(configuration):
     else:
 
         gp_model = \
-            GPModel(data_path        = configuration["data_path"],
+            GpModel(data_path        = configuration["data_path"],
                     saved_model_path = configuration["GP"]["model_path"])
 
     gp_model.test(plot=True)

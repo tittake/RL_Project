@@ -1,7 +1,7 @@
 import gpytorch
 
 
-class MultitaskGPModel(gpytorch.models.ExactGP):
+class MultitaskGpModel(gpytorch.models.ExactGP):
 
     def __init__(self, train_inputs, train_targets, likelihood, num_tasks):
 

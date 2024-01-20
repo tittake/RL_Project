@@ -10,11 +10,10 @@ import torch
 
 import data.dataloader as dataloader
 
-from GP_model.BatchIndependentMultiTaskGP \
-    import BatchIndependentMultiTaskGPModel
+from GP.BatchIndependentMultiTaskGP import BatchIndependentMultiTaskGpModel
 
 
-class GPModel:
+class GpModel:
 
     def __init__(self,
                  data_path:        str,
@@ -97,7 +96,7 @@ class GPModel:
                                               dtype  = torch.float64)
 
         self.model = \
-            BatchIndependentMultiTaskGPModel(
+            BatchIndependentMultiTaskGpModel(
                 train_inputs  = self.X_train,
                 train_targets = self.y_train,
                 likelihood    = self.likelihood,
