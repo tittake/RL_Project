@@ -60,6 +60,11 @@ class PolicyNetwork:
 
             initial_controller = deepcopy(self.controller)
 
+            initial_distance = \
+                torch.cdist(torch.unsqueeze(self.ee_location,        dim=0),
+                            torch.unsqueeze(self.target_ee_location, dim=0)
+                            ).item()
+
             optimizer = torch.optim.Adam(self.controller.parameters(),
                                          lr=self.learning_rate)
 
@@ -72,8 +77,6 @@ class PolicyNetwork:
 
             start_model_training = time.perf_counter()
 
-            accumulated_rewards = 0
-
             for i in range(self.iterations):
 
                 optimizer.zero_grad()
@@ -82,8 +85,6 @@ class PolicyNetwork:
                       f"/ {self.iterations}")
 
                 reward = self.calculate_step_reward()
-
-                accumulated_rewards += reward.item()
 
                 loss = -reward
 
@@ -101,7 +102,16 @@ class PolicyNetwork:
 
             # plot_policy()
 
-            print(f"trial {trial + 1} rewards: {accumulated_rewards:.3f}\n")
+            final_distance = \
+                torch.cdist(torch.unsqueeze(self.ee_location,        dim=0),
+                            torch.unsqueeze(self.target_ee_location, dim=0)
+                            ).item()
+
+            percent_distance_covered = (  (initial_distance - final_distance)
+                                        / initial_distance)
+
+            print(f"trial {trial + 1} distance covered: "
+                  f"{percent_distance_covered:.1%}\n")
 
             trial_save_info = {
                 "optimInfo": optimInfo,
@@ -217,7 +227,7 @@ class PolicyNetwork:
             self.target_ee_location.to(self.device, dtype=torch.float64)
 
         reward = \
-            -torch.cdist(torch.unsqueeze(self.ee_location, dim=0),
+            -torch.cdist(torch.unsqueeze(self.ee_location,        dim=0),
                          torch.unsqueeze(self.target_ee_location, dim=0))
 
         print(f"reward: {reward.item()}")
