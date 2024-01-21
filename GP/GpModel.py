@@ -57,7 +57,7 @@ class GpModel:
         self.X_train = self.X_train.to(self.device, dtype=torch.float64)
         self.y_train = self.y_train.to(self.device, dtype=torch.float64)
 
-        if not saved_model_path:
+        if not saved_model_path: # new model
 
             self.input_features  = dataloader.X_names
             self.output_features = dataloader.y_names
@@ -65,7 +65,11 @@ class GpModel:
             self.input_feature_count  = self.X_train.shape[1]
             self.output_feature_count = self.y_train.shape[1]
 
-        else:
+            # verify that data's input size matches dataloader's input size
+            assert len(self.input_features ) == self.input_feature_count
+            assert len(self.output_features) == self.output_feature_count
+
+        else: # pretrained model
 
             folder = dirname(join(getcwd(), saved_model_path))
 
@@ -84,14 +88,9 @@ class GpModel:
 
                 setattr(self, attribute_name, attribute)
 
+            # verify pretrained model trained on features matching dataloader's
             assert self.input_features  == dataloader.X_names
             assert self.output_features == dataloader.y_names
-
-            assert self.input_feature_count  == self.X_train.shape[1]
-            assert self.output_feature_count == self.y_train.shape[1]
-
-        assert len(self.input_features ) == self.input_feature_count
-        assert len(self.output_features) == self.output_feature_count
 
         self.likelihood = \
             gpytorch.likelihoods\
@@ -154,9 +153,9 @@ class GpModel:
             self.X_train = self.X_train.to(self.device, dtype=torch.float64)
             self.y_train = self.y_train.to(self.device, dtype=torch.float64)
 
-            assert self.input_feature_count == self.X_train.shape[1]
-
-            assert self.output_feature_count == self.y_train.shape[1]
+            # verify pretrained model trained on data of same size as data
+            assert len(self.input_features ) == self.X_train.shape[1]
+            assert len(self.output_features) == self.y_train.shape[1]
 
             self.model.set_train_data(inputs  = self.X_train,
                                       targets = self.y_train,
@@ -188,12 +187,18 @@ class GpModel:
                 loss = -loss_metric(output, self.y_train)
 
                 if loss.item() < best_loss:
+
                     best_loss = loss.item()
+
                     if save_model_to:
                         self.save_model(path = save_model_to)
 
-                progress_bar.set_description(f"current loss: {loss.item()}, "
-                                             f"best loss: {best_loss}")
+                    progress_bar.set_description(f"loss: {loss.item()}")
+
+                else:
+                    progress_bar.set_description(
+                        f"current loss: {loss.item()}, "
+                        f"best: {best_loss}")
 
                 loss.backward()
                 optimizer.step()
