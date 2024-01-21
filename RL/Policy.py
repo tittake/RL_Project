@@ -61,12 +61,6 @@ class PolicyNetwork:
 
             self.reset()
 
-            print("initial EE location: "
-                  f"{self.state['ee_location'].cpu().numpy()}")
-
-            print("self.target_ee_location: "
-                  f"{self.target_ee_location.cpu().numpy()}\n")
-
             initial_distance = \
                 cdist(unsqueeze(self.state["ee_location"], dim=0),
                       unsqueeze(self.target_ee_location,   dim=0)
@@ -86,10 +80,16 @@ class PolicyNetwork:
 
             for i in range(self.iterations):
 
-                optimizer.zero_grad()
-
                 print(f"trial {trial + 1}/{self.trials}, "
-                      f"iteration {i + 1}/{self.iterations}")
+                      f"iteration {i + 1}/{self.iterations}\n")
+
+                print("initial EE location: "
+                      f"{self.state['ee_location'].cpu().detach().numpy()}")
+
+                print("target EE location:  "
+                      f"{self.target_ee_location.cpu().detach().numpy()}\n")
+
+                optimizer.zero_grad()
 
                 reward = self.calculate_step_reward()
 
