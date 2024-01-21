@@ -244,10 +244,16 @@ class PolicyNetwork:
         for feature in dataloader.y_features:
 
             initial_state[feature] = \
-                torch.tensor([random_state[column]
-                              for column in dataloader.features[feature]],
+                np.array([[random_state[column]
+                          for column in dataloader.features[feature]]])
+
+            print(initial_state[feature])
+
+            initial_state[feature] = \
+                torch.tensor(self.scalers[feature]
+                             .transform(initial_state[feature]),
                              device = self.device,
-                             dtype  = self.dtype)
+                             dtype  = self.dtype)[0]
 
         self.target_ee_location = initial_state["ee_location"].clone()
 
