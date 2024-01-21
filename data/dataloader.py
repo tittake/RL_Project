@@ -1,3 +1,4 @@
+from itertools import chain
 import os
 
 import matplotlib.pyplot as plt
@@ -7,76 +8,101 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import torch
 
-min_max_joint_scaler = MinMaxScaler()
-min_max_torque_scaler = MinMaxScaler()
-min_max_ee_location_scaler = MinMaxScaler()
-min_max_velocity_scaler = MinMaxScaler()
-min_max_acceleration_scaler = MinMaxScaler()
+features  = {"EE_coordinates": ("boom_x", "boom_y"),
+             "joints":         ("theta1", "theta2", "xt2"),
+             "torques":        ("fc1", "fc2", "fct2"),
+             "velocities":     ("boom_x_velocity", "boom_y_velocity"),
+             "accelerations":  ("boom_x_acceleration", "boom_y_acceleration")
+             }
 
-X_names = ["theta1", "theta2", "xt2", "fc1", "fc2", "fct2", "boom_x_velocity",  "boom_y_velocity", "boom_x_acceleration", "boom_y_acceleration"]
-y_names = ["boom_x", "boom_y", "theta1", "theta2", "xt2", "boom_x_velocity",  "boom_y_velocity", "boom_x_acceleration", "boom_y_acceleration"]
+scalers = {}
+
+X_features = ["torques",
+              "joints",
+              "velocities",
+              "accelerations"]
+
+y_features = ["EE_coordinates",
+              "joints",
+              "velocities",
+              "accelerations"]
+
+X_names = list(chain(*[features[feature]
+                     for feature in X_features]))
+
+y_names = list(chain(*[features[feature]
+                     for feature in y_features]))
 
 
-def normalize_data(X, y, testing):
+def get_feature_indices(feature_names, query_feature):
     """
-    normalizes inputs and outputs with MinMaxScalers
+    return start and end indices for feature in feature_names
+
+    args:
+        feature_names: list of features (either X_features or y_features)
+        query_feature: the name of the feature whose indices you want
+    returns:
+        start_index
+        end_index
+    """
+
+    assert query_feature in feature_names
+
+    index = 0
+
+    for feature in feature_names:
+        if query_feature == feature:
+            return index, index + len(features[feature])
+        else:
+            index += len(features[feature])
+
+
+def normalize_data(X, y): # TODO accept prefitted scalers
+    """
+    normalizes inputs and outputs using MinMaxScalers
 
     args:
         X: input data
         y: output data
-        testing (bool): is X and y for training or testing
     returns:
         X: normalized input data
         y: normalized output data
-        min_max_joint_scaler: scaler for joint values
-        min_max_torque_scaler: scaler for torques
-        min_max_ee_location_scaler: scaler for end-effector location
+        scalers: fitted scalers
     """
 
-    if not testing:
+    scaled_X = []
+    scaled_y = []
 
-        joints = min_max_joint_scaler.fit_transform(X[:, 0:3])
+    for data, scaled_data, data_features in ((X, scaled_X, X_features),
+                                             (y, scaled_y, y_features)):
 
-        torques = min_max_torque_scaler.fit_transform(X[:, 3:6])
+        for feature in data_features:
 
-        ee_velocities = min_max_velocity_scaler.fit_transform(X[:, 6:8])
+            start_index, end_index = \
+                get_feature_indices(feature_names = data_features,
+                                    query_feature = feature)
 
-        ee_accelerations =  min_max_acceleration_scaler.fit_transform(X[:,8:10])
+            if feature in scalers: # scaler is already fitted
 
-        print(joints.shape)
-        print(torques.shape)
-        print(ee_velocities.shape)
-        print(ee_accelerations.shape)    
-        X = np.concatenate((joints, torques, ee_velocities, ee_accelerations), axis=1)
+                scaled_data.append(
+                    scalers[feature].transform(
+                        data[:, start_index : end_index]))
 
-        ee_location = min_max_ee_location_scaler.fit_transform(y[:, 0:2])
+            else: # scaler has not yet been fitted
 
-        y = np.concatenate((ee_location, joints, ee_velocities, ee_accelerations), axis=1)
+                scalers[feature] = MinMaxScaler()
 
-    else:
+                scaled_data.append(
+                    scalers[feature].fit_transform(
+                        data[:, start_index : end_index]))
 
-        joints = min_max_joint_scaler.transform(X[:, 0:3])
-
-        torques = min_max_torque_scaler.transform(X[:, 3:6])
-
-        ee_velocities = min_max_velocity_scaler.transform(X[:, 6:8])
-
-        ee_accelerations =  min_max_acceleration_scaler.transform(X[:,8:10])
-
-        X = np.concatenate((joints, torques, ee_velocities, ee_accelerations), axis=1)
-
-        ee_location = min_max_ee_location_scaler.transform(y[:, 0:2])
-
-        y = np.concatenate((ee_location, joints, ee_velocities, ee_accelerations), axis=1)
+    X = np.concatenate(scaled_X, axis=1)
+    y = np.concatenate(scaled_y, axis=1)
 
     X = torch.tensor(X, dtype=torch.double)
     y = torch.tensor(y, dtype=torch.double)
 
-    return (X,
-            y,
-            min_max_joint_scaler,
-            min_max_torque_scaler,
-            min_max_ee_location_scaler)
+    return X, y, scalers
 
 
 def load_data(path):
@@ -119,42 +145,33 @@ def load_data_directory(path):
     for csv_file in csv_files:
         file_path = os.path.join(path, csv_file)
         df = pd.read_csv(file_path)
-        if iteration % 3 == 1:
-            combined_df.append(df)
+        combined_df.append(df)
         iteration += 1
 
     combined_df = pd.concat(combined_df, ignore_index=True)
 
     X, y = get_xy(combined_df)
 
-    def non_shuffling_train_test_split(X, y, test_size=0.2):
+    def non_shuffling_train_test_split(X, y, test_size=0.05):
         i = int((1 - test_size) * X.shape[0]) + 1
         X_train, X_test = np.split(X, [i])
         y_train, y_test = np.split(y, [i])
         return X_train, X_test, y_train, y_test
 
     X_train, X_test, y_train, y_test = \
-        non_shuffling_train_test_split(X, y, test_size=0.2)
+        non_shuffling_train_test_split(X, y, test_size=0.20)
 
     (X_train,
      y_train,
-     joint_scaler,
-     torque_scaler,
-     ee_location_scaler) = normalize_data(X_train.values,
-                                          y_train.values,
-                                          testing=False)
+     scalers) = normalize_data(X_train.values, y_train.values)
 
-    X_test, y_test, _, _, _ = normalize_data(X_test.values,
-                                             y_test.values,
-                                             testing=True)
+    X_test, y_test, _ = normalize_data(X_test.values, y_test.values)
 
     return (X_train,
             X_test,
             y_train,
             y_test,
-            joint_scaler,
-            torque_scaler,
-            ee_location_scaler)
+            scalers)
 
 
 def get_xy(data):
