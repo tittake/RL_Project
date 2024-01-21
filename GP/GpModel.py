@@ -1,5 +1,6 @@
 """module containing class to model a Gaussian Process"""
 
+from math import inf
 from os import getcwd, mkdir
 from os.path import dirname, isdir, isfile, join
 from pathlib import Path
@@ -24,12 +25,8 @@ class GpModel:
                  saved_model_path: str = None):
         """loads data and initializes model"""
 
-        # TODO instead of only saving the input & output feature counts...
-        # save their actual names
-        # then it can be asserted that they match the data being used
-        # the counts can be derived
-        self.metadata_attributes = ("input_feature_count",
-                                    "output_feature_count",
+        self.metadata_attributes = ("input_features",
+                                    "output_features",
                                     "scalers")
 
         self.device = torch.device("cuda:0"
@@ -62,8 +59,10 @@ class GpModel:
 
         if not saved_model_path:
 
-            self.input_feature_count = self.X_train.shape[1]
+            self.input_features  = dataloader.X_names
+            self.output_features = dataloader.y_names
 
+            self.input_feature_count  = self.X_train.shape[1]
             self.output_feature_count = self.y_train.shape[1]
 
         else:
@@ -85,9 +84,14 @@ class GpModel:
 
                 setattr(self, attribute_name, attribute)
 
-            assert self.input_feature_count == self.X_train.shape[1]
+            assert self.input_features  == dataloader.X_names
+            assert self.output_features == dataloader.y_names
 
+            assert self.input_feature_count  == self.X_train.shape[1]
             assert self.output_feature_count == self.y_train.shape[1]
+
+        assert len(self.input_features ) == self.input_feature_count
+        assert len(self.output_features) == self.output_feature_count
 
         self.likelihood = \
             gpytorch.likelihoods\
@@ -169,17 +173,33 @@ class GpModel:
 
         start_model_training = time.perf_counter()
 
+        best_loss = inf
+
         self.loss_history = []
 
         with tqdm(total = iterations) as progress_bar:
+
             for _ in range(iterations):
+
                 optimizer.zero_grad()
+
                 output = self.model(self.X_train)
+
                 loss = -loss_metric(output, self.y_train)
-                progress_bar.set_description(f"loss: {loss.item()}")
+
+                if loss.item() < best_loss:
+                    best_loss = loss.item()
+                    if save_model_to:
+                        self.save_model(path = save_model_to)
+
+                progress_bar.set_description(f"current loss: {loss.item()}, "
+                                             f"best loss: {best_loss}")
+
                 loss.backward()
                 optimizer.step()
+
                 progress_bar.update()
+
                 self.loss_history.append(loss.item())
 
         end_model_training = time.perf_counter()
@@ -188,23 +208,6 @@ class GpModel:
 
         self.model.eval()
         self.likelihood.eval()
-
-        if save_model_to:
-
-            folder = dirname(join(getcwd(), save_model_to))
-
-            if not isdir(folder):
-                mkdir(folder)
-
-            torch.save(self.model.state_dict(), save_model_to)
-
-            metadata = tuple(getattr(self, attribute)
-                             for attribute in self.metadata_attributes)
-
-            dump(value    = metadata,
-                 filename = join(folder,
-                                 Path(save_model_to).stem
-                                 + ".joblib"))
 
         if plot_loss:
 
@@ -218,6 +221,23 @@ class GpModel:
             ax_loss.legend()
 
             plt.show()
+
+    def save_model(self, path):
+
+        folder = dirname(join(getcwd(), path))
+
+        if not isdir(folder):
+            mkdir(folder)
+
+        torch.save(self.model.state_dict(), path)
+
+        metadata = tuple(getattr(self, attribute)
+                         for attribute in self.metadata_attributes)
+
+        dump(value    = metadata,
+             filename = join(folder,
+                             Path(path).stem
+                             + ".joblib"))
 
     def test(self, data_path=None, plot=False): # TODO document return types
         """
