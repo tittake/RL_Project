@@ -7,7 +7,7 @@ import csv
 import os
 import random
 
-from data.dataloader import X_names
+from data.dataloader import y_names
 
 DEFAULT_DEVICE = torch.device("cuda:0")
 DEFAULT_DTYPE = torch.float32
@@ -53,7 +53,7 @@ def get_random_state(folder_path):
     for csv_file in csv_files:
 
         file_path = os.path.join(folder_path, csv_file)
-        
+
         with open(file_path, 'r', newline='') as file:
 
             csv_reader = csv.DictReader(file)
@@ -67,10 +67,10 @@ def get_random_state(folder_path):
 
                 for row in (second_row, last_row):
 
-                  values = {column: float(second_row[column])
-                            for column in X_names}
+                    values = {column: float(second_row[column])
+                              for column in y_names}
 
-                  extracted_values.append(values)
+                    extracted_values.append(values)
 
             except StopIteration:
                 print(f"File {csv_file} is empty")

@@ -8,6 +8,8 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import torch
 
+dtype = torch.double
+
 # TODO move features to a configuration file?
 
 features  = {"ee_location":   ("boom_x", "boom_y"),
@@ -72,7 +74,6 @@ def normalize_data(X, y): # TODO accept prefitted scalers
     returns:
         X: normalized input data
         y: normalized output data
-        scalers: fitted scalers
     """
 
     scaled_X = []
@@ -104,8 +105,8 @@ def normalize_data(X, y): # TODO accept prefitted scalers
     X = np.concatenate(scaled_X, axis=1)
     y = np.concatenate(scaled_y, axis=1)
 
-    X = torch.tensor(X, dtype=torch.double)
-    y = torch.tensor(y, dtype=torch.double)
+    X = torch.tensor(X, dtype=dtype)
+    y = torch.tensor(y, dtype=dtype)
 
     return X, y
 
@@ -134,9 +135,6 @@ def load_data_directory(path):
         X_test: GP testing inputs
         y_train: GP training outputs
         y_test: GP testing outputs
-        joint_scaler: scaler for joint values
-        torque_scaler: scaler for torques
-        ee_location_scaler: scaler for end-effector locations
     """
 
     files = os.listdir(path)
@@ -157,7 +155,7 @@ def load_data_directory(path):
 
     X, y = get_xy(combined_df)
 
-    def non_shuffling_train_test_split(X, y, test_size=0.05):
+    def non_shuffling_train_test_split(X, y, test_size=0.20):
         i = int((1 - test_size) * X.shape[0]) + 1
         X_train, X_test = np.split(X, [i])
         y_train, y_test = np.split(y, [i])
@@ -214,9 +212,6 @@ def load_training_data(data_path, normalize=True):
     returns:
         X: GP training inputs
         y: GP training outputs
-        joint_scaler: scaler for joint values
-        torque_scaler: scaler for torques
-        ee_location_scaler: scaler for end-effector locations
     """
 
     training_data = load_data(data_path)
@@ -232,7 +227,7 @@ def load_training_data(data_path, normalize=True):
         X = torch.tensor(X.values, dtype=torch.double)
         y = torch.tensor(y.values, dtype=torch.double)
 
-    return X, y, joint_scaler, torque_scaler, ee_location_scaler
+    return X, y
 
 
 def load_testing_data(data_path, normalize=False):
@@ -245,9 +240,6 @@ def load_testing_data(data_path, normalize=False):
     returns:
         X: GP testing inputs
         y: GP testing outputs
-        joint_scaler: scaler for joint values
-        torque_scaler: scaler for torques
-        ee_location_scaler: scaler for end-effector locations
     """
 
     testing_data = load_data(data_path)
@@ -261,7 +253,7 @@ def load_testing_data(data_path, normalize=False):
         X = torch.tensor(X.values, dtype=torch.double)
         y = torch.tensor(y.values, dtype=torch.double)
 
-    return X, y, joint_scaler, torque_scaler, ee_location_scaler
+    return X, y
 
 
 def plot_X_train_vs_time(X, names):

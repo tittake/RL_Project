@@ -19,7 +19,7 @@ class RlController(nn.Module):
 
         print("initializing controller...")
 
-        self.nn_layers = [81, 243, 81]
+        self.nn_layers = [27, 81, 27]
 
         activation_function = nn.Tanh
 
@@ -42,6 +42,14 @@ class RlController(nn.Module):
             activation_function(),
             nn.Linear(
                 self.nn_layers[1],
+                self.nn_layers[2],
+                device=device,
+                dtype=self.dtype,
+                bias=False,
+            ),
+            activation_function(),
+            nn.Linear(
+                self.nn_layers[2],
                 control_output_count,
                 device=device,
                 dtype=self.dtype,

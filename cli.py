@@ -49,6 +49,7 @@ def add_GP_training_parser_arguments(parser):
                         required = False,
                         default  = False)
 
+
 def train_GP(data_path:     str,
              iterations:    int,
              save_model_to: str,
@@ -72,6 +73,7 @@ def train_GP(data_path:     str,
         gp_model.test(data_path = data_path,
                       plot      = True)
 
+
 def add_GP_testing_parser_arguments(parser):
     """`GP test` arguments"""
 
@@ -93,6 +95,7 @@ def add_GP_testing_parser_arguments(parser):
                         required = False,
                         default  = True)
 
+
 def test_GP(model_path: str,
             data_path:  str,
             plot:       bool):
@@ -104,6 +107,7 @@ def test_GP(model_path: str,
 
     # TODO add accuracy metrics to GpModel.test(), then add option not to plot
     gp_model.test(plot = True)
+
 
 def add_RL_training_parser_arguments(parser):
     """`RL train` arguments"""
@@ -141,6 +145,7 @@ def add_RL_training_parser_arguments(parser):
                         required = False,
                         default  = 0.01)
 
+
 def train_RL(data_path:              str,
              GP_model_path:          str,
              trials:                 int,
@@ -155,8 +160,8 @@ def train_RL(data_path:              str,
     policy_network = \
         PolicyNetwork(gp_model             = gp_model,
                       data_path            = data_path,
-                      state_feature_count  = 3, # TODO add CLI argument
-                      control_output_count = 3, # TODO add CLI argument
+                      state_feature_count  = 7, # TODO add argument/config
+                      control_output_count = 3, # TODO add argument/config
                       trials               = trials,
                       iterations           = iterations,
                       learning_rate        = learning_rate)
