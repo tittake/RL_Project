@@ -2,6 +2,6 @@ gpytorch
 joblib
 matplotlib
 numpy
-sklearn
+scikit-learn
 torch
 tqdm
