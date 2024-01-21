@@ -40,23 +40,23 @@ class GpModel:
         print(f"using device: {self.device}")
 
         if isfile(data_path):
-            (self.X_train,
-             self.y_train,
-             self.scalers) = \
-                dataloader.load_training_data(
-                    data_path = data_path,
-                    normalize  = True)
+
+            self.X_train, self.y_train = \
+                dataloader.load_training_data(data_path = data_path,
+                                              normalize  = True)
 
         elif isdir(data_path):
+
             (self.X_train,
              self.X_test,
              self.y_train,
-             self.y_test,
-             self.scalers) = \
+             self.y_test) = \
                 dataloader.load_data_directory(data_path)
 
         else:
             raise ValueError("invalid path: " + data_path)
+
+        self.scalers = dataloader.scalers
 
         self.X_train = self.X_train.to(self.device, dtype=torch.float64)
         self.y_train = self.y_train.to(self.device, dtype=torch.float64)
@@ -136,16 +136,13 @@ class GpModel:
 
             if isfile(data_path):
 
-                # ignore returned scalers, keep scalers from pretrained model
-                (self.X_train, self.y_train, _, _, _) = \
-                    dataloader.load_training_data(
-                        data_path = data_path,
-                        normalize  = True)
+                self.X_train, self.y_train = \
+                    dataloader.load_training_data(data_path = data_path,
+                                                  normalize  = True)
 
             elif isdir(data_path):
 
-                # ignore returned scalers and testing dataset
-                (self.X_train, _, self.y_train, _, _, _, _) = \
+                self.X_train, _, self.y_train, _ = \
                     dataloader.load_data_directory(data_path)
 
             else:
@@ -242,18 +239,13 @@ class GpModel:
 
             if isfile(data_path):
 
-                # ignore returned scalers, keep scalers from training
-                (self.X_test,
-                 self.y_test,
-                 _, _, _) = \
-                    dataloader.load_testing_data(
-                        data_path = data_path,
-                        normalize  = True)
+                (self.X_test, self.y_test) = \
+                    dataloader.load_testing_data(data_path = data_path,
+                                                 normalize  = True)
 
             elif isdir(data_path):
 
-                # ignore returned scalers and training dataset
-                (_, self.X_test, _, self.y_test, _, _, _) = \
+                _, self.X_test, _, self.y_test = \
                     dataloader.load_data_directory(data_path)
 
             else:

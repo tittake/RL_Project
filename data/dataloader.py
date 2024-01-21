@@ -8,6 +8,8 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import torch
 
+# TODO move features to a configuration file?
+
 features  = {"EE_coordinates": ("boom_x", "boom_y"),
              "joints":         ("theta1", "theta2", "xt2"),
              "torques":        ("fc1", "fc2", "fct2"),
@@ -32,6 +34,9 @@ X_names = list(chain(*[features[feature]
 
 y_names = list(chain(*[features[feature]
                      for feature in y_features]))
+
+# X_names for example could look like:
+# ['fc1', 'fc2', 'fct2', 'theta1', 'theta2', 'xt2', 'boom_x_velocity', ...]
 
 
 def get_feature_indices(feature_names, query_feature):
@@ -102,7 +107,7 @@ def normalize_data(X, y): # TODO accept prefitted scalers
     X = torch.tensor(X, dtype=torch.double)
     y = torch.tensor(y, dtype=torch.double)
 
-    return X, y, scalers
+    return X, y
 
 
 def load_data(path):
@@ -161,17 +166,14 @@ def load_data_directory(path):
     X_train, X_test, y_train, y_test = \
         non_shuffling_train_test_split(X, y, test_size=0.20)
 
-    (X_train,
-     y_train,
-     scalers) = normalize_data(X_train.values, y_train.values)
+    X_train, y_train = normalize_data(X_train.values, y_train.values)
 
-    X_test, y_test, _ = normalize_data(X_test.values, y_test.values)
+    X_test, y_test = normalize_data(X_test.values, y_test.values)
 
     return (X_train,
             X_test,
             y_train,
-            y_test,
-            scalers)
+            y_test)
 
 
 def get_xy(data):
@@ -223,13 +225,7 @@ def load_training_data(data_path, normalize=True):
 
     if normalize:
 
-        (X,
-         y,
-         joint_scaler,
-         torque_scaler,
-         ee_location_scaler) = normalize_data(X.values,
-                                              y.values,
-                                              testing=False)
+        X, y = normalize_data(X.values, y.values)
 
     else:
 
@@ -259,12 +255,7 @@ def load_testing_data(data_path, normalize=False):
     X, y = get_xy(testing_data)
 
     if normalize:
-        (X,
-         y,
-         joint_scaler,
-         torque_scaler,
-         ee_location_scaler
-         ) = normalize_data(X.values, y.values, testing=True)
+        X, y = normalize_data(X.values, y.values)
 
     else:
         X = torch.tensor(X.values, dtype=torch.double)
