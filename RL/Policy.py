@@ -62,10 +62,10 @@ class PolicyNetwork:
             self.reset()
 
             print("initial EE location: "
-                  f"{self.state['ee_location'][0].numpy()}")
+                  f"{self.state['ee_location'][0].cpu().numpy()}")
 
             print("self.target_ee_location: "
-                  f"{self.target_ee_location[0].numpy()}\n")
+                  f"{self.target_ee_location[0].cpu().numpy()}\n")
 
             initial_distance = \
                 cdist(unsqueeze(self.state["ee_location"], dim=0),
@@ -100,7 +100,9 @@ class PolicyNetwork:
                 distance = \
                     cdist(unsqueeze(self.state["ee_location"], dim=0),
                           unsqueeze(self.target_ee_location,   dim=0)
-                          ).to('cpu').detach().item()
+                          ).cpu().detach().item()
+
+                print(f"distance: {distance}")
 
                 percent_distance_covered = (  (initial_distance - distance)
                                             / initial_distance)
@@ -141,7 +143,7 @@ class PolicyNetwork:
         def print_value(title, tensor):
             """print a tensor's value for debugging"""
 
-            print(f"{title}: {tensor.to('cpu').detach().numpy()}")
+            print(f"{title}: {tensor.cpu().detach().numpy()}")
 
         # detach gradients to avoid accumulation due to looping models
         for feature in self.controller_input_features:
@@ -198,6 +200,10 @@ class PolicyNetwork:
             dot_product = torch.dot(ideal_vector_to_goal,
                                     self.state[vector_metric])
 
+            dot_product = torch.dot(ideal_vector_to_goal,
+                                    self.state[vector_metric]
+                                    ).to(self.device, dtype = self.dtype)
+
             norm = (  torch.norm(ideal_vector_to_goal)
                     * torch.norm(self.state[vector_metric]))
 
@@ -240,9 +246,10 @@ class PolicyNetwork:
             initial_state[feature] = \
                 torch.tensor([random_state[column]
                               for column in dataloader.features[feature]],
-                             dtype = self.dtype)
+                             device = self.device,
+                             dtype  = self.dtype)
 
-        self.target_ee_location = deepcopy(initial_state["ee_location"])
+        self.target_ee_location = initial_state["ee_location"].clone()
 
         # loop until initial and goal locations are distinct
         while torch.equal(self.target_ee_location,
@@ -257,8 +264,7 @@ class PolicyNetwork:
             self.target_ee_location = \
                 torch.tensor(self.scalers["ee_location"]
                              .transform(self.target_ee_location),
-                             dtype = self.dtype)[0]
-
-        self.target_ee_location = self.target_ee_location.clone()
+                             device = self.device,
+                             dtype  = self.dtype)[0]
 
         self.state = initial_state
