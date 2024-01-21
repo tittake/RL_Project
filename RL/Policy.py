@@ -252,8 +252,6 @@ class PolicyNetwork:
                 np.array([[random_state[column]
                           for column in dataloader.features[feature]]])
 
-            print(initial_state[feature])
-
             initial_state[feature] = \
                 torch.tensor(self.scalers[feature]
                              .transform(initial_state[feature]),
