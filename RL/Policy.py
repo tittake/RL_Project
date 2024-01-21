@@ -62,10 +62,10 @@ class PolicyNetwork:
             self.reset()
 
             print("initial EE location: "
-                  f"{self.state['ee_location'][0].cpu().numpy()}")
+                  f"{self.state['ee_location'].cpu().numpy()}")
 
             print("self.target_ee_location: "
-                  f"{self.target_ee_location[0].cpu().numpy()}\n")
+                  f"{self.target_ee_location.cpu().numpy()}\n")
 
             initial_distance = \
                 cdist(unsqueeze(self.state["ee_location"], dim=0),
