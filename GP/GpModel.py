@@ -94,7 +94,7 @@ class GpModel:
 
         self.likelihood = \
             gpytorch.likelihoods\
-            .MultitaskGaussianLikelihood(num_tasks = self.output_feature_count,
+            .MultitaskGaussianLikelihood(num_tasks = len(self.output_features),
                                          ).to(device = self.device,
                                               dtype  = torch.float64)
 
@@ -103,8 +103,8 @@ class GpModel:
                 train_inputs  = self.X_train,
                 train_targets = self.y_train,
                 likelihood    = self.likelihood,
-                num_tasks     = self.output_feature_count,
-                ard_num_dims  = self.input_feature_count,
+                num_tasks     = len(self.output_features),
+                ard_num_dims  = len(self.input_features)
             ).to(self.device, torch.float64)
 
         if saved_model_path:
