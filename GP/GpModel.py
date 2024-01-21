@@ -24,11 +24,14 @@ class GpModel:
                  saved_model_path: str = None):
         """loads data and initializes model"""
 
+        # TODO instead of only saving the input & output feature counts...
+          # save their actual names
+          # then it can be asserted that they match the data being used
+          # the counts can be derived
+
         self.metadata_attributes = ("input_feature_count",
                                     "output_feature_count",
-                                    "joint_scaler",
-                                    "torque_scaler",
-                                    "ee_location_scaler")
+                                    "scalers")
 
         self.device = torch.device("cuda:0"
                                    if torch.cuda.is_available()
@@ -39,9 +42,7 @@ class GpModel:
         if isfile(data_path):
             (self.X_train,
              self.y_train,
-             self.joint_scaler,
-             self.torque_scaler,
-             self.ee_location_scaler) = \
+             self.scalers) = \
                 dataloader.load_training_data(
                     data_path = data_path,
                     normalize  = True)
@@ -51,9 +52,7 @@ class GpModel:
              self.X_test,
              self.y_train,
              self.y_test,
-             self.joint_scaler,
-             self.torque_scaler,
-             self.ee_location_scaler) = \
+             self.scalers) = \
                 dataloader.load_data_directory(data_path)
 
         else:
@@ -224,7 +223,7 @@ class GpModel:
 
             plt.show()
 
-    def test(self, data_path=None, plot=False):
+    def test(self, data_path=None, plot=False): # TODO document return types
         """
         evaluate a trained Gaussian Process model on testing data
 
