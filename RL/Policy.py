@@ -61,6 +61,12 @@ class PolicyNetwork:
 
             self.reset()
 
+            optimizer = torch.optim.Adam(self.controller.parameters(),
+                                         lr=self.learning_rate)
+
+            optimization_log = {"loss": [],
+                                "time": []}
+
             initial_distance = \
                 cdist(unsqueeze(self.state["ee_location"], dim=0),
                       unsqueeze(self.target_ee_location,   dim=0)
@@ -68,25 +74,24 @@ class PolicyNetwork:
 
             print(f"initial_distance: {initial_distance}\n")
 
-            optimizer = torch.optim.Adam(self.controller.parameters(),
-                                         lr=self.learning_rate)
-
-            optimization_log = {"loss": [],
-                                "time": []}
-
-            self.controller.train()
+            initial_ee_location = \
+                self.state["ee_location"].clone().cpu().detach().numpy()
 
             start_model_training = time.perf_counter()
+
+            self.controller.train()
 
             for i in range(self.iterations):
 
                 print(f"trial {trial + 1}/{self.trials}, "
                       f"iteration {i + 1}/{self.iterations}\n")
 
-                print("initial EE location: "
+                print(f"initial EE location: {initial_ee_location}")
+
+                print("current EE location: "
                       f"{self.state['ee_location'].cpu().detach().numpy()}")
 
-                print("target EE location:  "
+                print("target  EE location: "
                       f"{self.target_ee_location.cpu().detach().numpy()}\n")
 
                 optimizer.zero_grad()
