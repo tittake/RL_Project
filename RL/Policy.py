@@ -160,6 +160,8 @@ class PolicyNetwork:
         for feature, value in self.state.items():
             print_value(title = feature, tensor = value)
 
+        print()
+
         controller_inputs = [self.state[feature]
                              for feature in self.controller_input_features]
 
@@ -167,8 +169,6 @@ class PolicyNetwork:
             unsqueeze(torch.cat(controller_inputs), dim=0)
 
         self.state["torques"] = self.controller(controller_inputs)[0]
-
-        print_value("action", self.state["torques"])
 
         gp_inputs = [self.state[feature]
                      for feature in dataloader.X_features]
@@ -188,9 +188,6 @@ class PolicyNetwork:
             self.state[feature] = predictions.mean[0, start_index : end_index]
 
             self.state[feature].to(self.device, dtype = self.dtype)
-
-        print_value("current EE location", self.state['ee_location'])
-        print_value("   goal EE location", self.target_ee_location)
 
         # vector from the predicted EE coordinates towards the goal
         ideal_vector_to_goal = (  self.target_ee_location
