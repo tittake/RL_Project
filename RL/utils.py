@@ -7,6 +7,8 @@ import csv
 import os
 import random
 
+from data.dataloader import X_names
+
 DEFAULT_DEVICE = torch.device("cuda:0")
 DEFAULT_DTYPE = torch.float32
 
@@ -46,8 +48,6 @@ def get_random_state(folder_path):
     if not csv_files:
         raise ValueError("no CSV files found in folder: " + folder_path)
 
-    columns_to_extract = ["boom_x", "boom_y", "theta1", "theta2", "xt2"]
-
     extracted_values = []
 
     for csv_file in csv_files:
@@ -68,7 +68,7 @@ def get_random_state(folder_path):
                 for row in (second_row, last_row):
 
                   values = {column: float(second_row[column])
-                            for column in columns_to_extract}
+                            for column in X_names}
 
                   extracted_values.append(values)
 

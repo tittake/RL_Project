@@ -25,10 +25,9 @@ class GpModel:
         """loads data and initializes model"""
 
         # TODO instead of only saving the input & output feature counts...
-          # save their actual names
-          # then it can be asserted that they match the data being used
-          # the counts can be derived
-
+        # save their actual names
+        # then it can be asserted that they match the data being used
+        # the counts can be derived
         self.metadata_attributes = ("input_feature_count",
                                     "output_feature_count",
                                     "scalers")
@@ -273,7 +272,7 @@ class GpModel:
 
         for i, task in enumerate(tasks):
 
-            # Make predictions for each task
+            # make predictions for each task
             with torch.no_grad(), gpytorch.settings.fast_pred_var():
                 test_x = torch.linspace(0, 1, len(self.X_test[:, 0]))
                 predictions = self.likelihood(self.model(self.X_test))
@@ -282,14 +281,14 @@ class GpModel:
 
             if plot:
 
-                # Plot training data as black stars
+                # plot training data as black stars
                 axes_tasks[i].plot(test_x.cpu().numpy(),
                                    self.y_test[:, i].cpu().numpy(), 'k*')
 
                 axes_tasks[i].plot(test_x.cpu().numpy(),
                                    mean[:, i].cpu().numpy(), 'b')
 
-                # Shade in confidence
+                # shade in confidence
                 axes_tasks[i].fill_between(test_x.cpu().numpy(),
                                            lower[:, i].cpu().numpy(),
                                            upper[:, i].cpu().numpy(),

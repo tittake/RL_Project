@@ -10,11 +10,11 @@ import torch
 
 # TODO move features to a configuration file?
 
-features  = {"EE_coordinates": ("boom_x", "boom_y"),
-             "joints":         ("theta1", "theta2", "xt2"),
-             "torques":        ("fc1", "fc2", "fct2"),
-             "velocities":     ("boom_x_velocity", "boom_y_velocity"),
-             "accelerations":  ("boom_x_acceleration", "boom_y_acceleration")
+features  = {"ee_location":   ("boom_x", "boom_y"),
+             "joints":        ("theta1", "theta2", "xt2"),
+             "torques":       ("fc1", "fc2", "fct2"),
+             "velocities":    ("boom_x_velocity", "boom_y_velocity"),
+             "accelerations": ("boom_x_acceleration", "boom_y_acceleration")
              }
 
 scalers = {}
@@ -24,7 +24,7 @@ X_features = ["torques",
               "velocities",
               "accelerations"]
 
-y_features = ["EE_coordinates",
+y_features = ["ee_location",
               "joints",
               "velocities",
               "accelerations"]
