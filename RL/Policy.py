@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from math import sqrt
+from random import random
 import time
 import torch
 from torch import cdist, unsqueeze
@@ -157,13 +158,26 @@ class PolicyNetwork:
                                        dtype = self.dtype
                                        ).detach()
 
-        controller_inputs = [self.state[feature]
-                             for feature in self.controller_input_features]
+        if random() <= 0.5:
 
-        controller_inputs = \
-            unsqueeze(torch.cat(controller_inputs), dim=0)
+            print("exploiting...")
 
-        self.state["torques"] = self.controller(controller_inputs)[0]
+            controller_inputs = [self.state[feature]
+                                 for feature in self.controller_input_features]
+
+            controller_inputs = \
+                unsqueeze(torch.cat(controller_inputs), dim=0)
+
+            self.state["torques"] = self.controller(controller_inputs)[0]
+
+        else:
+
+            print("exploring...")
+
+            # random (normalized) torques between -1 and 1
+            self.state["torques"] = -1 + 2 * torch.rand(size  = (3, ),
+                                                        dtype = self.dtype
+                                                        ).to(self.device)
 
         for feature, value in self.state.items():
             print_value(title = feature, tensor = value)
