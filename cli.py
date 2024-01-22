@@ -160,8 +160,8 @@ def train_RL(data_path:              str,
     policy_network = \
         PolicyNetwork(gp_model             = gp_model,
                       data_path            = data_path,
-                      state_feature_count  = 7, # TODO add argument/config
-                      control_output_count = 3, # TODO add argument/config
+                      # state_feature_count  = 7, # TODO add argument/config
+                      # control_output_count = 3, # TODO add argument/config
                       trials               = trials,
                       iterations           = iterations,
                       learning_rate        = learning_rate)

@@ -17,9 +17,9 @@ class RlController(nn.Module):
 
         self.dtype = torch.double
 
-        print("initializing controller...")
+        print("initializing controller...\n")
 
-        self.nn_layers = [27, 81, 27]
+        self.nn_layers = [81, 243, 81]
 
         activation_function = nn.Tanh
 

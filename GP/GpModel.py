@@ -165,7 +165,7 @@ class GpModel:
 
         self.likelihood.train()
 
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.1)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
 
         loss_metric = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood,
                                                                self.model)

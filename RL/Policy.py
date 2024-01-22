@@ -1,6 +1,7 @@
 """module containing reinforcement learning policy class"""
 
 from copy import deepcopy
+import json
 from math import sqrt
 from random import random
 import time
@@ -22,7 +23,7 @@ class PolicyNetwork:
     def __init__(self,
                  gp_model: GpModel,
                  data_path:            str,
-                 state_feature_count:  int = 7,
+                 state_feature_count:  int = 9,
                  control_output_count: int = 3,
                  trials:               int = 100,
                  iterations:           int = 1000,
@@ -36,8 +37,9 @@ class PolicyNetwork:
         self.trials        = trials
         self.learning_rate = learning_rate
 
-        # TODO make this configurable
-        self.controller_input_features = ("joints",
+        # TODO make this configurable from someplace
+        self.controller_input_features = ("target",
+                                          "joints",
                                           "velocities",
                                           "accelerations")
 
@@ -52,6 +54,8 @@ class PolicyNetwork:
         self.controller = \
             RlController(state_feature_count  = state_feature_count,
                          control_output_count = control_output_count)
+
+        self.rewards = []
 
     def optimize_policy(self):
         """optimize controller parameters"""
@@ -70,7 +74,7 @@ class PolicyNetwork:
 
             initial_distance = \
                 cdist(unsqueeze(self.state["ee_location"], dim=0),
-                      unsqueeze(self.target_ee_location,   dim=0)
+                      unsqueeze(self.state["target"],      dim=0)
                       ).item()
 
             print(f"initial_distance: {initial_distance}\n")
@@ -93,7 +97,7 @@ class PolicyNetwork:
                       f"{self.state['ee_location'].cpu().detach().numpy()}")
 
                 print("target  EE location: "
-                      f"{self.target_ee_location.cpu().detach().numpy()}\n")
+                      f"{self.state['target'].cpu().detach().numpy()}\n")
 
                 optimizer.zero_grad()
 
@@ -105,7 +109,7 @@ class PolicyNetwork:
 
                 distance = \
                     cdist(unsqueeze(self.state["ee_location"], dim=0),
-                          unsqueeze(self.target_ee_location,   dim=0)
+                          unsqueeze(self.state["target"],      dim=0)
                           ).cpu().detach().item()
 
                 print(f"distance: {distance}")
@@ -158,12 +162,18 @@ class PolicyNetwork:
                                        dtype = self.dtype
                                        ).detach()
 
+        exploiting = False
+
+        # TODO doesn't make sense to choose action in calculate_step_reward()
         if random() <= 0.5:
 
             print("exploiting...")
 
+            exploiting = True
+
             controller_inputs = [self.state[feature]
-                                 for feature in self.controller_input_features]
+                                 for feature
+                                 in self.controller_input_features]
 
             controller_inputs = \
                 unsqueeze(torch.cat(controller_inputs), dim=0)
@@ -204,7 +214,7 @@ class PolicyNetwork:
             self.state[feature].to(self.device, dtype = self.dtype)
 
         # vector from the predicted EE coordinates towards the goal
-        ideal_vector_to_goal = (  self.target_ee_location
+        ideal_vector_to_goal = (  self.state["target"]
                                 - self.state["ee_location"])
 
         # TODO calculate the dot product between this and acceleration
@@ -234,7 +244,7 @@ class PolicyNetwork:
 
         error_metrics["euclidian_distance"] = \
             cdist(unsqueeze(self.state["ee_location"], dim=0),
-                  unsqueeze(self.target_ee_location,   dim=0))
+                  unsqueeze(self.state["target"],      dim=0))
 
         # normalize Euclidian distance to range (0, 1)
         # x and y coordinates should be between -1 and 1
@@ -245,6 +255,13 @@ class PolicyNetwork:
 
         reward = -sum((1 / len(error_metrics)) * error
                       for error in error_metrics.values())
+
+        if exploiting:
+
+            self.rewards.append(reward.cpu().detach().item())
+
+            with open("rewards.json", "w") as rewards_log:
+                json.dump(self.rewards, rewards_log, indent = 1)
 
         print(f"reward: {reward.item()}")
 
@@ -269,21 +286,21 @@ class PolicyNetwork:
                              device = self.device,
                              dtype  = self.dtype)[0]
 
-        self.target_ee_location = initial_state["ee_location"].clone()
+        initial_state["target"] = initial_state["ee_location"].clone()
 
-        # loop until initial and goal locations are distinct
-        while torch.equal(self.target_ee_location,
+        # loop till initial & goal locations distinct (to avoid divide by zero)
+        while torch.equal(initial_state["target"],
                           initial_state["ee_location"]):
 
             random_state = get_random_state(self.data_path)
 
-            self.target_ee_location = np.array([[random_state["boom_x"],
+            initial_state["target"] = np.array([[random_state["boom_x"],
                                                  random_state["boom_y"]]
                                                 ])
 
-            self.target_ee_location = \
+            initial_state["target"]= \
                 torch.tensor(self.scalers["ee_location"]
-                             .transform(self.target_ee_location),
+                             .transform(initial_state["target"]),
                              device = self.device,
                              dtype  = self.dtype)[0]
 
