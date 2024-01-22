@@ -25,7 +25,7 @@ class PolicyNetwork:
                  control_output_count: int = 3,
                  trials:               int = 100,
                  iterations:           int = 1000,
-                 learning_rate:      float = 0.01):
+                 learning_rate:      float = 0.001):
 
         super().__init__()
 
@@ -157,11 +157,6 @@ class PolicyNetwork:
                                        dtype = self.dtype
                                        ).detach()
 
-        for feature, value in self.state.items():
-            print_value(title = feature, tensor = value)
-
-        print()
-
         controller_inputs = [self.state[feature]
                              for feature in self.controller_input_features]
 
@@ -169,6 +164,11 @@ class PolicyNetwork:
             unsqueeze(torch.cat(controller_inputs), dim=0)
 
         self.state["torques"] = self.controller(controller_inputs)[0]
+
+        for feature, value in self.state.items():
+            print_value(title = feature, tensor = value)
+
+        print()
 
         gp_inputs = [self.state[feature]
                      for feature in dataloader.X_features]
