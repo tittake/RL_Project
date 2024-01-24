@@ -279,52 +279,55 @@ class GpModel:
         self.y_test = self.y_test.to(self.device, dtype=torch.float64)
 
         # plot for tasks
-        tasks = ["end-effector x-location",
-                 "end-effector y-location",
-                 "theta1",
-                 "theta2",
-                 "xt2",
-                 "boom_x_velocity",
-                 "boom_y_velocity",
-                 "boom_x_acceleration",
-                 "boom_y_acceleration"]
+        tasks_groups = [
+            ["end-effector x-location", "end-effector y-location"],
+            ["theta1", "theta2", "xt2"],
+            ["boom_x_velocity", "boom_y_velocity"],
+            ["boom_x_acceleration", "boom_y_acceleration"]
+        ]
 
         self.model.eval()
         self.likelihood.eval()
 
-        if plot:
-            _, axes_tasks = plt.subplots(1, len(tasks), figsize=(12, 4))
+        tasks = ["end-effector x-location",
+                "end-effector y-location",
+                "theta1",
+                "theta2",
+                "xt2",
+                "boom_x_velocity",
+                "boom_y_velocity",
+                "boom_x_acceleration",
+                "boom_y_acceleration"]
 
-        for i, task in enumerate(tasks):
+        for group in tasks_groups:
+            _, axes_tasks = plt.subplots(1, len(group), figsize=(6 * len(group), 4))
 
-            # make predictions for each task
-            with torch.no_grad(), gpytorch.settings.fast_pred_var():
-                test_x = torch.linspace(0, 1, len(self.X_test[:, 0]))
-                predictions = self.likelihood(self.model(self.X_test))
-                mean = predictions.mean
-                lower, upper = predictions.confidence_region()
-
-            if plot:
+            for i, task in enumerate(group):
+                # make predictions for each task
+                with torch.no_grad(), gpytorch.settings.fast_pred_var():
+                    test_x = torch.linspace(0, 1, len(self.X_test[:, 0]))
+                    predictions = self.likelihood(self.model(self.X_test))
+                    mean = predictions.mean
+                    lower, upper = predictions.confidence_region()
 
                 # plot training data as black stars
                 axes_tasks[i].plot(test_x.cpu().numpy(),
-                                   self.y_test[:, i].cpu().numpy(), 'k*')
+                                self.y_test[:, tasks.index(task)].cpu().numpy(), 'k*')
 
                 axes_tasks[i].plot(test_x.cpu().numpy(),
-                                   mean[:, i].cpu().numpy(), 'b')
+                                mean[:, tasks.index(task)].cpu().numpy(), 'b')
 
                 # shade in confidence
                 axes_tasks[i].fill_between(test_x.cpu().numpy(),
-                                           lower[:, i].cpu().numpy(),
-                                           upper[:, i].cpu().numpy(),
-                                           alpha=0.5)
+                                        lower[:, tasks.index(task)].cpu().numpy(),
+                                        upper[:, tasks.index(task)].cpu().numpy(),
+                                        alpha=0.5)
 
                 axes_tasks[i].set_ylim([-0.2, 1.3])
                 axes_tasks[i].legend(["Observed Data", "Mean", "Confidence"])
-                axes_tasks[i].set_title("Observed Values (Likelihood), "
-                                        f"{task}")
+                axes_tasks[i].set_title(f"Observed Values (Likelihood), {task}")
 
-        plt.show()
+            plt.show()
 
     def predict(self, X):
         """
