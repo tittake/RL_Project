@@ -156,7 +156,8 @@ class PolicyNetwork:
         end_model_training = time.perf_counter()
         elapsed_model_training = end_model_training - start_model_training
         print("training time: ", elapsed_model_training)
-        self.write_RL_results()
+        if False:
+            self.write_RL_results()
 
     def calculate_step_reward(self):
         """calculate and return reward for a single time step"""
@@ -364,7 +365,7 @@ class PolicyNetwork:
         print(RL_results_np)
 
         # Define the CSV file path
-        csv_file_path = '/home/titta/Documents/rpw/RL_Project/stash/RL_results.csv'
+        csv_file_path = '/RL_results.csv'
 
         # Open the CSV file for writing
         with open(csv_file_path, 'w', newline='') as csvfile:
@@ -391,13 +392,12 @@ class PolicyNetwork:
                 joint_tensor = joint_tensor.view(1, -1)
                 joint_tensor = self.scalers["joints"].inverse_transform(joint_tensor)
                 joint_tensor = joint_tensor[0]
-                print(joint_tensor[0])
+                
 
                 torque_tensor = torch.from_numpy(np.array([torque1, torque2, torque3]))
                 torque_tensor = torque_tensor.view(1, -1)
                 torque_tensor = self.scalers["torques"].inverse_transform(torque_tensor)
                 torque_tensor = torque_tensor[0]
-                print(torque_tensor[0])
 
 
                 csv_writer.writerow([time, ee[0], ee[1], joint_tensor[0], joint_tensor[1], joint_tensor[2], torque_tensor[0], torque_tensor[1], torque_tensor[2]])
