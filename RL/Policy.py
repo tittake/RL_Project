@@ -156,7 +156,7 @@ class PolicyNetwork:
         end_model_training = time.perf_counter()
         elapsed_model_training = end_model_training - start_model_training
         print("training time: ", elapsed_model_training)
-        if False:
+        if True:
             self.write_RL_results()
 
     def calculate_step_reward(self):
@@ -364,8 +364,68 @@ class PolicyNetwork:
 
         print(RL_results_np)
 
-        # Define the CSV file path
-        csv_file_path = '/RL_results.csv'
+        csv_file_path = 'stash/RL_results_polyfit.csv'
+        # Lists to store column values
+        time_list = []
+        ee_x_list = []
+        ee_y_list = []
+        theta1_list = []
+        theta2_list = []
+        xt2_list = []
+        torque1_list = []
+        torque2_list = []
+        torque3_list = []
+
+        # Write data to lists
+        time = 0.1
+        for i in range(len(RL_results["Joint state"])):
+            end_effector_x, end_effector_y = RL_results["End-effector location"][i]
+            theta1, theta2, xt2 = RL_results["Joint state"][i]
+            torque1, torque2, torque3 = RL_results["Torque"][i]
+
+            end_effector_tensor = torch.from_numpy(np.array([end_effector_x, end_effector_y]))
+            end_effector_tensor_2d = end_effector_tensor.view(1, -1)
+            ee = self.scalers["ee_location"].inverse_transform(end_effector_tensor_2d)
+            ee = ee[0]
+
+            joint_tensor = torch.from_numpy(np.array([theta1, theta2, xt2]))
+            joint_tensor = joint_tensor.view(1, -1)
+            joint_tensor = self.scalers["joints"].inverse_transform(joint_tensor)
+            joint_tensor = joint_tensor[0]
+
+            torque_tensor = torch.from_numpy(np.array([torque1, torque2, torque3]))
+            torque_tensor = torque_tensor.view(1, -1)
+            torque_tensor = self.scalers["torques"].inverse_transform(torque_tensor)
+            torque_tensor = torque_tensor[0]
+
+            # Append values to lists
+            time_list.append(time)
+            ee_x_list.append(ee[0])
+            ee_y_list.append(ee[1])
+            theta1_list.append(joint_tensor[0])
+            theta2_list.append(joint_tensor[1])
+            xt2_list.append(joint_tensor[2])
+            torque1_list.append(torque_tensor[0])
+            torque2_list.append(torque_tensor[1])
+            torque3_list.append(torque_tensor[2])
+            time += 0.1
+
+        # Choose the degree of the polynomial for fitting
+        degree = 16  # You can adjust this based on your data
+
+        # Fit a polynomial to the torque values
+        torque1_list = np.polyfit(time_list, torque1_list, degree)
+        poly_function = np.poly1d(torque1_list)
+        torque1_list = poly_function(time_list)
+
+        torque2_list = np.polyfit(time_list, torque2_list, degree)
+        poly_function = np.poly1d(torque2_list)
+        torque2_list = poly_function(time_list)
+
+        torque3_list = np.polyfit(time_list, torque3_list, degree)
+        poly_function = np.poly1d(torque3_list)
+        torque3_list = poly_function(time_list)
+            
 
         # Open the CSV file for writing
         with open(csv_file_path, 'w', newline='') as csvfile:
@@ -373,35 +433,12 @@ class PolicyNetwork:
             csv_writer = csv.writer(csvfile)
 
             # Write the header
-            csv_writer.writerow(["time","boom_x", "boom_y", "theta1", "theta2", "xt2", "fc1", "fc2", "fct2"])
+            csv_writer.writerow(["time", "boom_x", "boom_y", "theta1", "theta2", "xt2", "fc1", "fc2", "fct2"])
 
             # Write the data rows
-            time = 0.1
-            for i in range(len(RL_results["Joint state"])):
+            for row in zip(time_list, ee_x_list, ee_y_list, theta1_list, theta2_list, xt2_list, torque1_list, torque2_list, torque3_list):
+                csv_writer.writerow(row)
 
-                end_effector_x, end_effector_y = RL_results["End-effector location"][i]
-                theta1, theta2, xt2 = RL_results["Joint state"][i]
-                torque1, torque2, torque3 = RL_results["Torque"][i]
-
-                end_effector_tensor = torch.from_numpy(np.array([end_effector_x, end_effector_y]))
-                end_effector_tensor_2d = end_effector_tensor.view(1, -1)
-                ee = self.scalers["ee_location"].inverse_transform(end_effector_tensor_2d)
-                ee = ee[0]
-
-                joint_tensor = torch.from_numpy(np.array([theta1, theta2, xt2]))
-                joint_tensor = joint_tensor.view(1, -1)
-                joint_tensor = self.scalers["joints"].inverse_transform(joint_tensor)
-                joint_tensor = joint_tensor[0]
-                
-
-                torque_tensor = torch.from_numpy(np.array([torque1, torque2, torque3]))
-                torque_tensor = torque_tensor.view(1, -1)
-                torque_tensor = self.scalers["torques"].inverse_transform(torque_tensor)
-                torque_tensor = torque_tensor[0]
-
-
-                csv_writer.writerow([time, ee[0], ee[1], joint_tensor[0], joint_tensor[1], joint_tensor[2], torque_tensor[0], torque_tensor[1], torque_tensor[2]])
-                time += 0.1
-                print(f"Data written to {csv_file_path}")
+            print(f"Data written to {csv_file_path}")
 
             return
