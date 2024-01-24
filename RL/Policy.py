@@ -8,6 +8,7 @@ import time
 import torch
 from torch import cdist, unsqueeze
 import numpy as np
+import csv
 
 import data.dataloader as dataloader
 from RL.Controller import RlController
@@ -16,6 +17,10 @@ from RL.utils import get_random_state
 from GP.GpModel import GpModel
 import matplotlib.pyplot as plt
 
+RL_results = {"Joint state": [], 
+              "Torque": [],
+              "End-effector location": [],
+              "Target": []}
 
 class PolicyNetwork:
     """reinforcement learning policy"""
@@ -124,6 +129,10 @@ class PolicyNetwork:
 
                 optimization_log["loss"].append(loss.item())
 
+                RL_results["Torque"].append(self.state["torques"].cpu().detach().numpy())
+                RL_results["Joint state"].append(self.state["joints"].cpu().detach().numpy())
+                RL_results["End-effector location"].append(self.state["ee_location"].cpu().detach().numpy())
+                RL_results["Target"].append(self.state["target"].cpu().detach().numpy())
             print(f"trial {trial + 1} distance covered: "
                   f"{percent_distance_covered:.1%}\n")
 
@@ -142,10 +151,12 @@ class PolicyNetwork:
 
             torch.save(self.controller.state_dict(),
                        f"trained_models/RL-{trial + 1:03}.pth")
+            
 
         end_model_training = time.perf_counter()
         elapsed_model_training = end_model_training - start_model_training
         print("training time: ", elapsed_model_training)
+        self.write_RL_results()
 
     def calculate_step_reward(self):
         """calculate and return reward for a single time step"""
@@ -305,3 +316,92 @@ class PolicyNetwork:
                              dtype  = self.dtype)[0]
 
         self.state = initial_state
+
+    def write_RL_results(self):
+        
+        # Move tensors to CPU and convert to NumPy arrays
+        RL_results_np = {key: value.detach().numpy() if isinstance(value, torch.Tensor) else np.array(value) for key, value in RL_results.items()}
+
+        # Create subplots
+        fig, axs = plt.subplots(3, 1, figsize=(8, 12))
+
+        # Plot Joint state
+        axs[0].plot(RL_results_np["Joint state"], marker='o', linestyle='-')
+        axs[0].set_title('Joint State')
+        axs[0].set_xlabel('Time')
+        axs[0].set_ylabel('Joint State')
+
+        # Plot Torque
+        axs[1].plot(RL_results_np["Torque"], marker='o', linestyle='-')
+        axs[1].set_title('Torque')
+        axs[1].set_xlabel('Time')
+        axs[1].set_ylabel('Torque')
+
+        # Plot first End-effector location in red with 'o' markers and solid line
+        axs[2].plot(RL_results_np["End-effector location"][:,0], marker='o', linestyle='-', color='red', label='End-effector Location 1')
+        axs[2].plot(RL_results_np["End-effector location"][:,1], marker='x', linestyle='-', color='blue', label='End-effector Location 2')
+
+        # Plot Target with '+' markers and dotted line in black
+        axs[2].plot(RL_results_np["Target"][:,0], marker='o', linestyle='--', color='red', label='Target')
+        axs[2].plot(RL_results_np["Target"][:,1],marker='x', linestyle='--', color='blue', label='Target')
+        
+        
+        axs[2].set_title('End-effector Location')
+        axs[2].set_xlabel('Time')
+        axs[2].set_ylabel('End-effector Location')
+
+        data_length = len(RL_results["Joint state"])
+
+        # Generate "Time" values from 0.1 to the length of the data
+        time_values = [0.1 * i for i in range(1, data_length + 1)]
+
+        # Adjust layout
+        plt.tight_layout()
+
+        # Show the plots
+        plt.show()
+
+        print(RL_results_np)
+
+        # Define the CSV file path
+        csv_file_path = '/home/titta/Documents/rpw/RL_Project/stash/RL_results.csv'
+
+        # Open the CSV file for writing
+        with open(csv_file_path, 'w', newline='') as csvfile:
+            # Create a CSV writer
+            csv_writer = csv.writer(csvfile)
+
+            # Write the header
+            csv_writer.writerow(["time","boom_x", "boom_y", "theta1", "theta2", "xt2", "fc1", "fc2", "fct2"])
+
+            # Write the data rows
+            time = 0.1
+            for i in range(len(RL_results["Joint state"])):
+
+                end_effector_x, end_effector_y = RL_results["End-effector location"][i]
+                theta1, theta2, xt2 = RL_results["Joint state"][i]
+                torque1, torque2, torque3 = RL_results["Torque"][i]
+
+                end_effector_tensor = torch.from_numpy(np.array([end_effector_x, end_effector_y]))
+                end_effector_tensor_2d = end_effector_tensor.view(1, -1)
+                ee = self.scalers["ee_location"].inverse_transform(end_effector_tensor_2d)
+                ee = ee[0]
+
+                joint_tensor = torch.from_numpy(np.array([theta1, theta2, xt2]))
+                joint_tensor = joint_tensor.view(1, -1)
+                joint_tensor = self.scalers["joints"].inverse_transform(joint_tensor)
+                joint_tensor = joint_tensor[0]
+                print(joint_tensor[0])
+
+                torque_tensor = torch.from_numpy(np.array([torque1, torque2, torque3]))
+                torque_tensor = torque_tensor.view(1, -1)
+                torque_tensor = self.scalers["torques"].inverse_transform(torque_tensor)
+                torque_tensor = torque_tensor[0]
+                print(torque_tensor[0])
+
+
+                csv_writer.writerow([time, ee[0], ee[1], joint_tensor[0], joint_tensor[1], joint_tensor[2], torque_tensor[0], torque_tensor[1], torque_tensor[2]])
+                time += 0.1
+                print(f"Data written to {csv_file_path}")
+
+            return
