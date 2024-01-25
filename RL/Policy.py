@@ -7,10 +7,10 @@ from math import sqrt
 from os import listdir
 from os.path import join
 from random import randint, random
+import sklearn
 import time
 import torch
 from torch import cdist, unsqueeze
-import numpy as np
 
 import data.dataloader as dataloader
 from RL.Controller import RlController
@@ -55,6 +55,38 @@ class PolicyNetwork:
                          control_output_count = control_output_count)
 
         self.rewards = []
+
+    def transform(self, scaler: str, data: torch.Tensor):
+        """
+        a copy of sklearn.preprocessing.MinMaxScaler.transform
+        which handles tensors
+
+        arguments:
+            scaler: the key of the scaler in self.scalers, e.g. "velocities"
+            data:   the tensor to transform
+        """
+
+        data *= self.scalers[scaler].scale_
+
+        data += self.scalers[scaler].min_
+
+        return data
+
+    def inverse_transform(self, scaler: str, data: torch.Tensor):
+        """
+        a copy of sklearn.preprocessing.MinMaxScaler.inverse_transform
+        which handles tensors
+
+        arguments:
+            scaler: the key of the scaler in self.scalers, e.g. "velocities"
+            data:   the tensor to inverse transform
+        """
+
+        data -= self.scalers[scaler].min_
+
+        data /= self.scalers[scaler].scale_
+
+        return data
 
     def get_random_states(self, batch_size):
         """
@@ -160,12 +192,12 @@ class PolicyNetwork:
 
             for feature in ["target", *dataloader.y_features]:
 
-                feature_data = \
-                    np.array([state[index][feature]
-                              for state in list_of_states])
+                feature_data = [state[index][feature]
+                                for state in list_of_states]
 
                 scaled_feature_data = \
-                    self.scalers[feature].transform(feature_data)
+                    self.transform(scaler = feature,
+                                   data   = feature_data)
 
                 the_scaled_states[feature] = \
                     torch.tensor(data   = scaled_feature_data,
@@ -180,6 +212,12 @@ class PolicyNetwork:
         # TODO should this be a static method?
         # TODO update docstring
 
+        targets     = self.inverse_transform(scaler = "ee_location",
+                                             data   = states["target"])
+
+        ee_location = self.inverse_transform(scaler = "ee_location",
+                                             data   = states["ee_location"])
+
         # vector from the predicted EE coordinates towards the goal
         ideal_vector_to_goal = (  states["target"]
                                 - states["ee_location"])
@@ -190,75 +228,33 @@ class PolicyNetwork:
 
         for vector_metric in ("accelerations", "velocities"):
 
-            vectors = (self.scalers[vector_metric]
-                       .inverse_transform(states[vector_metric]))
-
-            # FIXME but i would lose my gradients here with the inverse transformation... :(
-
             vectors = \
-                torch.tensor(data   = vectors,
-                             device = self.device,
-                             dtype  = self.dtype)
-
-            # print(ideal_vector_to_goal.shape)
-            # print(vectors.shape)
-            # print(vectors.T.shape)
-
-            # https://stackoverflow.com/a/65331075/837710
+                self.inverse_transform(scaler = vector_metric,
+                                       data   = states[vector_metric])
 
             batch_size    = vectors.shape[0]
             feature_count = vectors.shape[1]
 
-            print(ideal_vector_to_goal[-5:])
-
-            print(vectors[-5:])
-
             x = ideal_vector_to_goal.reshape(batch_size, 1, feature_count)
             y = vectors.reshape(batch_size, feature_count, 1)
 
+            # https://stackoverflow.com/a/65331075/837710
             dot_product = torch.matmul(x, y).squeeze((1, 2))
-
-            # print(ideal_vector_to_goal[-4:])
-            # print(vectors[-4:])
-            print(dot_product[-5:])
-            # print(dot_product.shape)
 
             norm = (  torch.norm(ideal_vector_to_goal,  dim=1)
                     * torch.norm(vectors, dim=1))
 
-            print(norm[-5:])
-            # print(norm.shape)
-            # exit()
-
-            print((dot_product / norm)[-5:])
-
             # calculate the angle between the vectors
-            error_metrics[vector_metric] = \
-                torch.arccos(torch.div(dot_product, norm))
+            error_metrics[vector_metric] = torch.arccos(dot_product / norm)
 
-            # FIXME why is this very often greater than 1/2 * pi? e.g. 2.0476, 2.6569...
-
-            print(error_metrics[vector_metric][-5:])
-            # print(error_metrics[vector_metric].shape)
+            # TODO double-check whether this works and is sane & needed
+            # compensate for angles > (1/2) * pi (they should be <= (1/2) pi)
+            error_metrics[vector_metric] %= (1/2) * torch.pi
 
             # normalize to range (0, 1)
             error_metrics[vector_metric] = \
                 torch.div(error_metrics[vector_metric],
                           ((1 / 2) * torch.pi))
-
-            print(error_metrics[vector_metric][-5:])
-            # print(error_metrics[vector_metric].shape)
-
-            # FIXME why are the errors usually so high?
-            # [0.7897, 0.9199, 1.0976, 0.8541, 0.3119]
-            # these are ground-truth trajectories which should be headed in the right direction...
-            # oh SHIT!
-            # i'm dealing with values SCALED by different scalers...
-            # but i just scaled them, in self.get_random_states()...
-            # do i NOT want to do that?
-            # i guess that i probably DO, since they will often come from GP
-
-            exit()
 
         error_metrics["euclidian_distance"] = \
             cdist(unsqueeze(states["ee_location"], dim=0),
@@ -273,10 +269,6 @@ class PolicyNetwork:
 
         reward = -sum((1 / len(error_metrics)) * error
                       for error in error_metrics.values())
-
-        print(f"reward: {reward.item()}")
-
-        exit()
 
         return reward
 
