@@ -60,22 +60,6 @@ class PolicyNetwork:
 
         self.rewards = []
 
-    def transform(self, scaler: str, data: torch.Tensor):
-        """
-        a copy of sklearn.preprocessing.MinMaxScaler.transform
-        which handles tensors
-
-        arguments:
-            scaler: the key of the scaler in self.scalers, e.g. "velocities"
-            data:   the tensor to transform
-        """
-
-        data *= self.scalers[scaler].scale_
-
-        data += self.scalers[scaler].min_
-
-        return data
-
     def inverse_transform(self, scaler: str, data: torch.Tensor):
         """
         a copy of sklearn.preprocessing.MinMaxScaler.inverse_transform
@@ -86,9 +70,13 @@ class PolicyNetwork:
             data:   the tensor to inverse transform
         """
 
-        data -= self.scalers[scaler].min_
+        data -= torch.tensor(self.scalers[scaler].min_,
+                             device = self.device,
+                             dtype  = self.dtype)
 
-        data /= self.scalers[scaler].scale_
+        data /= torch.tensor(self.scalers[scaler].scale_,
+                             device = self.device,
+                             dtype  = self.dtype)
 
         return data
 
@@ -200,8 +188,7 @@ class PolicyNetwork:
                                 for state in list_of_states]
 
                 scaled_feature_data = \
-                    self.transform(scaler = feature,
-                                   data   = feature_data)
+                    self.scalers[feature].transform(feature_data)
 
                 the_scaled_states[feature] = \
                     torch.tensor(data   = scaled_feature_data,
