@@ -214,11 +214,9 @@ class PolicyNetwork:
 
         # TODO calculate the dot product between this and acceleration
 
-        error_metrics = {}
+        error_metric = {}
 
         for vector_metric in ("accelerations", "velocities"):
-
-            print(vector_metric)
 
             vectors = \
                 self.inverse_transform(scaler = vector_metric,
@@ -231,36 +229,36 @@ class PolicyNetwork:
             y = vectors.reshape(batch_size, feature_count, 1)
 
             # https://stackoverflow.com/a/65331075/837710
-            dot_product = torch.matmul(x, y).squeeze((1, 2))
+            dot_product = torch.matmul(x, y.clone()).squeeze((1, 2))
 
             norm = (  torch.norm(ideal_vector_to_goal, dim=1)
-                    * torch.norm(vectors,              dim=1))
+                    * torch.norm(vectors.clone(),      dim=1))
 
             # calculate the angle between the vectors
-            error_metrics[vector_metric] = torch.arccos(dot_product / norm)
+            error_metric[vector_metric] = torch.arccos(dot_product / norm)
 
             # TODO double-check whether this works and is sane & needed
             # compensate for angles > (1/2) * pi (they should be <= (1/2) pi)
-            error_metrics[vector_metric] = (  error_metrics[vector_metric]
-                                            % ((1/2) * torch.pi))
+            error_metric[vector_metric] = (  error_metric[vector_metric]
+                                           % ((1/2) * torch.pi))
 
             # normalize to range (0, 1)
-            error_metrics[vector_metric] = \
-                torch.div(error_metrics[vector_metric],
+            error_metric[vector_metric] = \
+                torch.div(error_metric[vector_metric],
                           ((1 / 2) * torch.pi))
 
-        error_metrics["euclidian_distance"] = \
+        error_metric["euclidian_distance"] = \
             torch.norm(states["ee_location"] - states["target"], dim=1)
 
         # normalize Euclidian distance to range (0, 1)
         # x and y coordinates should be between -1 and 1
         # thus maximum possible distance is [-1, -1] → [1, 1] = 2 * sqrt(2)
-        error_metrics["euclidian_distance"] = \
-            torch.div(error_metrics["euclidian_distance"],
+        error_metric["euclidian_distance"] = \
+            torch.div(error_metric["euclidian_distance"],
                       (2 * sqrt(2)))
 
-        rewards = -sum((1 / len(error_metrics)) * error
-                       for error in error_metrics.values())
+        rewards = -sum((1 / len(error_metric)) * error
+                       for error in error_metric.values())
 
         return rewards
 
@@ -292,7 +290,7 @@ class PolicyNetwork:
 
             loss = -rewards.mean()
 
-            print(f"loss: {loss.item()}")
+            print(f"loss: {loss.item()}\n")
 
             loss.backward()
 
