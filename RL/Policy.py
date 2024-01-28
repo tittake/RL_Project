@@ -18,6 +18,8 @@ from RL.Controller import RlController
 from GP.GpModel import GpModel
 import matplotlib.pyplot as plt
 
+torch.autograd.set_detect_anomaly(True)
+
 
 class PolicyNetwork:
     """reinforcement learning policy"""
@@ -216,6 +218,8 @@ class PolicyNetwork:
 
         for vector_metric in ("accelerations", "velocities"):
 
+            print(vector_metric)
+
             vectors = \
                 self.inverse_transform(scaler = vector_metric,
                                        data   = states[vector_metric])
@@ -229,15 +233,16 @@ class PolicyNetwork:
             # https://stackoverflow.com/a/65331075/837710
             dot_product = torch.matmul(x, y).squeeze((1, 2))
 
-            norm = (  torch.norm(ideal_vector_to_goal,  dim=1)
-                    * torch.norm(vectors, dim=1))
+            norm = (  torch.norm(ideal_vector_to_goal, dim=1)
+                    * torch.norm(vectors,              dim=1))
 
             # calculate the angle between the vectors
             error_metrics[vector_metric] = torch.arccos(dot_product / norm)
 
             # TODO double-check whether this works and is sane & needed
             # compensate for angles > (1/2) * pi (they should be <= (1/2) pi)
-            error_metrics[vector_metric] %= (1/2) * torch.pi
+            error_metrics[vector_metric] = (  error_metrics[vector_metric]
+                                            % ((1/2) * torch.pi))
 
             # normalize to range (0, 1)
             error_metrics[vector_metric] = \
@@ -262,6 +267,9 @@ class PolicyNetwork:
     def optimize_policy(self):
         """optimize controller parameters"""
 
+        # TODO add `batch_size` as argument
+        # TODO remove references to `trials`
+
         optimizer = torch.optim.Adam(self.controller.parameters(),
                                      lr=self.learning_rate)
 
@@ -282,7 +290,9 @@ class PolicyNetwork:
             rewards = self.calculate_rewards(states)
             # rewards = self.calculate_rewards(next_states)
 
-            loss = -rewards
+            loss = -rewards.mean()
+
+            print(f"loss: {loss.item()}")
 
             loss.backward()
 
@@ -363,7 +373,7 @@ class PolicyNetwork:
                     feature_names = dataloader.y_features,
                     query_feature = feature)
 
-            states[feature] = predictions.mean[0, start_index : end_index]
+            states[feature] = predictions.mean[:, start_index : end_index]
 
             states[feature].to(self.device, dtype = self.dtype)
 
