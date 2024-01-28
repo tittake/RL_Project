@@ -273,11 +273,11 @@ class PolicyNetwork:
 
         self.controller.train()
 
-        for i in range(self.iterations):
+        for iteration in range(self.iterations):
 
             optimizer.zero_grad()
 
-            states, next_states = self.get_random_states(batch_size = 100)
+            states, next_states = self.get_random_states(batch_size = 400)
 
             # try calculating loss between real next_states & model predictions
 
@@ -295,6 +295,9 @@ class PolicyNetwork:
             loss.backward()
 
             optimizer.step()
+
+            torch.save(self.controller.state_dict(),
+                       f"trained_models/RL-{iteration + 1}.pth")
 
     def select_actions(self, states):
         """
