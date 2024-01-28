@@ -207,13 +207,10 @@ class PolicyNetwork:
         return scaled_states, scaled_next_states
 
     def calculate_rewards(self, states):
-        """calculate and return reward for a single time step"""
+        """calculate and return rewards for a batch of states"""
 
-        # TODO should this be a static method?
-        # TODO update docstring
-
-        targets     = self.inverse_transform(scaler = "ee_location",
-                                             data   = states["target"])
+        targets = self.inverse_transform(scaler = "ee_location",
+                                         data   = states["target"])
 
         ee_location = self.inverse_transform(scaler = "ee_location",
                                              data   = states["ee_location"])
@@ -257,8 +254,7 @@ class PolicyNetwork:
                           ((1 / 2) * torch.pi))
 
         error_metrics["euclidian_distance"] = \
-            cdist(unsqueeze(states["ee_location"], dim=0),
-                  unsqueeze(states["target"],      dim=0))
+            torch.norm(states["ee_location"] - states["target"], dim=1)
 
         # normalize Euclidian distance to range (0, 1)
         # x and y coordinates should be between -1 and 1
@@ -267,10 +263,10 @@ class PolicyNetwork:
             torch.div(error_metrics["euclidian_distance"],
                       (2 * sqrt(2)))
 
-        reward = -sum((1 / len(error_metrics)) * error
-                      for error in error_metrics.values())
+        rewards = -sum((1 / len(error_metrics)) * error
+                       for error in error_metrics.values())
 
-        return reward
+        return rewards
 
     def optimize_policy(self):
         """optimize controller parameters"""
@@ -278,6 +274,9 @@ class PolicyNetwork:
         states, next_states = self.get_random_states(batch_size = 100)
 
         rewards = self.calculate_rewards(states)
+
+        print(rewards.shape) # [1, 100, 100]
+        # hmm, this is wrong... it should be just [100] i think...
 
         # TODO calculate rewards
 
