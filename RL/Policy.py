@@ -29,7 +29,6 @@ class PolicyNetwork:
                  data_path:            str,
                  state_feature_count:  int = 9,
                  control_output_count: int = 3,
-                 trials:               int = 100,
                  iterations:           int = 1000,
                  learning_rate:      float = 0.001):
 
@@ -38,7 +37,6 @@ class PolicyNetwork:
         self.gp_model      = gp_model
         self.data_path     = data_path
         self.iterations    = iterations
-        self.trials        = trials
         self.learning_rate = learning_rate
 
         # TODO make this configurable from someplace
@@ -278,8 +276,6 @@ class PolicyNetwork:
         for metric_name, metric in error_metric.items():
           print(f"mean {metric_name} error: {metric.mean().item()}")
 
-        print(f"mean reward: {rewards.mean().item()}")
-
         self.losses.append({"reward": rewards.mean().item(),
                             **{metric_name: metric.tolist()
                                for metric_name, metric
@@ -290,11 +286,9 @@ class PolicyNetwork:
 
         return rewards
 
-    def optimize_policy(self):
-        """optimize controller parameters"""
+    def temporal_difference_learning(self):
 
-        # TODO add `batch_size` as argument
-        # TODO remove references to `trials`
+        # TODO docstring
 
         ε = 0.9
 
@@ -305,44 +299,84 @@ class PolicyNetwork:
         optimizer = torch.optim.Adam(self.controller.parameters(),
                                      lr=self.learning_rate)
 
+        huber_loss = torch.nn.HuberLoss()
+
         self.controller.train()
 
         for iteration in range(self.iterations):
 
-            print(f"iteration {iteration + 1}")
+            print(f"phase 1, iteration {iteration + 1}")
 
             print(f"epsilon: {ε:.1%}")
 
             optimizer.zero_grad()
 
+            # i think only this line would be different for experience replay
+            # instead, we would take states from the replay buffer
             states, ground_truth_actions, next_states = \
-                self.get_random_states(batch_size = 4)
-
-            # TODO try loss with temporal difference
-            # TODO try calculating loss between real torque & controller torque
+                self.get_random_states(batch_size = 200)
 
             actions = self.select_actions(states = states, ε = ε)
 
             ε = max(ε * ε_decay, minimum_ε)
 
-            ###
+            next_actions = self.select_actions(states = next_states, ε = 0)
 
-            # branch depending on whether to learn from:
-              # next predicted state reward only
-              # next predicted state reward vs next actual state reward
-              # action vs actual action
+            loss = huber_loss(input  = actions,
+                              target = ground_truth_actions)
 
-            states = self.predict_next_states(states, actions)
-            # TODO save experiences to replay buffer, TODO then re-use
+            print(f"loss: {loss.item()}\n")
 
-            rewards = self.calculate_rewards(states)
-            # rewards = self.calculate_rewards(next_states)
+            loss.backward()
+
+            optimizer.step()
+
+    def optimize_policy(self,
+                        batch_size = 200,
+                        ε = 0.9,
+                        ε_decay = 0.99,
+                        minimum_ε = 0.02):
+
+        """optimize controller parameters"""
+
+        # branch depending on whether to learn from:
+          # next predicted state reward only
+          # next predicted state reward vs next actual state reward
+          # action vs actual action
+
+        # experience_replay_buffer: dict? list?
+
+        optimizer = torch.optim.Adam(self.controller.parameters(),
+                                     lr=self.learning_rate)
+
+        for iteration in range(self.iterations):
+
+            print(f"phase 2, iteration {iteration + 1}")
+
+            print(f"epsilon: {ε:.1%}")
+
+            optimizer.zero_grad()
+
+            states, _, _ = self.get_random_states(batch_size = batch_size)
+
+            actions = self.select_actions(states = states, ε = ε)
+
+            ε = max(ε * ε_decay, minimum_ε)
+
+            next_states = self.predict_next_states(states, actions)
+            # TODO record experiences to replay buffer, TODO then re-use
+
+            rewards = self.calculate_rewards(next_states)
 
             loss = -rewards.mean()
 
             print(f"loss: {loss.item()}\n")
 
-            ###
+            # detach gradients to avoid accumulation from looping models
+            for feature in dataloader.y_features:
+                next_states[feature].detach()
+
+            states  = next_states
 
             loss.backward()
 
@@ -363,36 +397,32 @@ class PolicyNetwork:
 
             print(f"{title}: {tensor.cpu().detach().numpy()}")
 
-        # detach gradients to avoid accumulation due to looping models
-        for feature in self.controller_input_features:
-            states[feature] = states[feature].detach()
+        controller_inputs = [states[feature]
+                             for feature
+                             in self.controller_input_features]
 
-        exploiting = False
+        controller_inputs = torch.cat(controller_inputs, dim=1)
 
-        if random() <= (1 - ε):
+        actions = self.controller(controller_inputs)
 
-            print("exploiting...")
+        if ε > 0:
 
-            exploiting = True
+            if random() <= (1 - ε):
 
-            controller_inputs = [states[feature]
-                                 for feature
-                                 in self.controller_input_features]
+                print("exploiting...")
 
-            controller_inputs = torch.cat(controller_inputs, dim=1)
+            else:
 
-            actions = self.controller(controller_inputs)
+                print("exploring...")
 
-        else:
+                reparameterization_ε = 0.1 # TODO add argument, disambiguate
 
-            print("exploring...")
-
-            batch_size = len(states[self.controller_input_features[0]])
-
-            # random torques normalized between -1 and 1
-            actions = -1 + 2 * torch.rand(size  = (batch_size, 3),
-                                          dtype = self.dtype
-                                          ).to(self.device)
+                # add Gaussian noise for exploration (reparameterization trick)
+                # https://sassafras13.github.io/ReparamTrick/
+                actions = (  actions
+                           + reparameterization_ε
+                           * torch.randn_like(actions)
+                           * actions.std())
 
         # for feature, value in states.items():
             # print_value(title = feature, tensor = value)
@@ -427,7 +457,5 @@ class PolicyNetwork:
                     query_feature = feature)
 
             states[feature] = predictions.mean[:, start_index : end_index]
-
-            states[feature].to(self.device, dtype = self.dtype)
 
         return states

@@ -126,12 +126,6 @@ def add_RL_training_parser_arguments(parser):
                         type     = str,
                         required = True)
 
-    parser.add_argument("-t",
-                        "--trials",
-                        type     = int,
-                        required = False,
-                        default  = 100)
-
     parser.add_argument("-i",
                         "--iterations",
                         type     = int,
@@ -148,7 +142,6 @@ def add_RL_training_parser_arguments(parser):
 
 def train_RL(data_path:              str,
              GP_model_path:          str,
-             trials:                 int,
              iterations:             int,
              learning_rate:          float):
 
@@ -162,7 +155,6 @@ def train_RL(data_path:              str,
                       data_path            = data_path,
                       # state_feature_count  = 7, # TODO add argument/config
                       # control_output_count = 3, # TODO add argument/config
-                      trials               = trials,
                       iterations           = iterations,
                       learning_rate        = learning_rate)
 
