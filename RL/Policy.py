@@ -1,12 +1,14 @@
 """module containing reinforcement learning policy class"""
 
-import csv
 from copy import deepcopy
+import csv
 import json
 from math import sqrt
 from os import listdir
 from os.path import join
 from random import randint, random
+
+import numpy
 import sklearn
 import time
 import torch
@@ -29,15 +31,16 @@ class PolicyNetwork:
                  data_path:            str,
                  state_feature_count:  int = 9,
                  control_output_count: int = 3,
-                 iterations:           int = 1000,
                  learning_rate:      float = 0.001):
 
         super().__init__()
 
         self.gp_model      = gp_model
         self.data_path     = data_path
-        self.iterations    = iterations
         self.learning_rate = learning_rate
+
+        self.state_feature_count  = state_feature_count
+        self.control_output_count = control_output_count
 
         # TODO make this configurable from someplace
         # TODO compute state_feature_count from this (how to know target dim?)
@@ -46,19 +49,23 @@ class PolicyNetwork:
                                           "velocities",
                                           "accelerations")
 
-        self.scalers = self.gp_model.scalers
-
         self.device = torch.device("cuda:0"
                                    if torch.cuda.is_available()
                                    else "cpu")
 
         self.dtype = dataloader.dtype
 
+        self.scalers = self.gp_model.scalers
+
         self.controller = \
             RlController(state_feature_count  = state_feature_count,
                          control_output_count = control_output_count)
 
         self.losses = []
+
+        self.replay_buffer = []
+
+        self.maximum_replay_buffer_size = 10**6
 
     def inverse_transform(self, scaler: str, data: torch.Tensor):
         """
@@ -212,6 +219,78 @@ class PolicyNetwork:
 
         return scaled_states, actions, scaled_next_states
 
+    def add_to_replay_buffer(self, states, next_states):
+
+        # TODO docstring
+
+        self.replay_buffer.append({"states":      states,
+                                   "next_states": next_states})
+
+        # truncate oldest experiences if buffer size exceeds maximum
+
+        replay_buffer_length = 0
+
+        index = len(self.replay_buffer) - 1
+
+        first_feature = dataloader.y_features[0]
+
+        while (    replay_buffer_length < self.maximum_replay_buffer_size
+               and index > 0):
+
+            replay_buffer_length += \
+                len(self.replay_buffer[index]["states"][first_feature])
+
+            index -= 1
+
+        self.replay_buffer = self.replay_buffer[index:]
+
+    def fetch_experiences_from_buffer(self, batch_size):
+
+        # TODO docstring
+
+        # generate batch_size unique indices like (batch_number, sample_number)
+
+        indices = set()
+
+        first_feature = dataloader.y_features[0]
+
+        while len(indices) < batch_size:
+
+            batch_number = randint(a = 0,
+                                   b = len(self.replay_buffer) - 1)
+
+            sample_number = \
+                randint(a = 0,
+                        b = len(self.replay_buffer\
+                                [batch_number]["states"][first_feature]) - 1)
+
+            indices.add((batch_number, sample_number))
+
+        # construct & return dicts of {feature: tensor} for states, next_states
+
+        states      = {}
+        next_states = {}
+
+        for feature in ["target", *dataloader.y_features]:
+
+            states[feature] = \
+                [self.replay_buffer\
+                 [batch_number]["states"][feature][sample_number]
+                 for batch_number, sample_number in indices]
+
+            next_states[feature] = \
+                [self.replay_buffer\
+                 [batch_number]["next_states"][feature][sample_number]
+                 for batch_number, sample_number in indices]
+
+            states[feature] = \
+                torch.stack(tensors = states[feature]).to(self.device)
+
+            next_states[feature] = \
+                torch.stack(tensors = next_states[feature]).to(self.device)
+
+        return states, next_states
+
     def calculate_rewards(self, states):
         """calculate and return rewards for a batch of states"""
 
@@ -286,15 +365,17 @@ class PolicyNetwork:
 
         return rewards
 
-    def temporal_difference_learning(self):
+    def temporal_difference_learning(self,
+                                     source,
+                                     batch_size = 500,
+                                     iterations = 500,
+                                     ε          = 0.9,
+                                     ε_decay    = 0.99,
+                                     minimum_ε  = 0.02):
 
         # TODO docstring
 
-        ε = 0.9
-
-        ε_decay = 0.99
-
-        minimum_ε = 0.02
+        assert source in ("ground_truth", "experience_replay")
 
         optimizer = torch.optim.Adam(self.controller.parameters(),
                                      lr=self.learning_rate)
@@ -303,27 +384,48 @@ class PolicyNetwork:
 
         self.controller.train()
 
-        for iteration in range(self.iterations):
+        for iteration in range(iterations):
 
-            print(f"phase 1, iteration {iteration + 1}")
+            if (    source == "experience_replay"
+                and iteration % 10 == 0):
+
+                target_network = \
+                    RlController(
+                        state_feature_count  = self.state_feature_count,
+                        control_output_count = self.control_output_count)
+
+                target_network.eval()
+
+            print(f"temporal difference learning from "
+                  f"{source.replace('_', ' ')}, "
+                  f"iteration {iteration + 1}")
 
             print(f"epsilon: {ε:.1%}")
 
             optimizer.zero_grad()
 
-            # i think only this line would be different for experience replay
-            # instead, we would take states from the replay buffer
-            states, ground_truth_actions, next_states = \
-                self.get_random_states(batch_size = 200)
+            if source == "ground_truth":
 
-            actions = self.select_actions(states = states, ε = ε)
+                states, target_actions, next_states = \
+                    self.get_random_states(batch_size = batch_size)
+
+            elif source == "experience_replay":
+
+                states, next_states = \
+                    self.fetch_experiences_from_buffer(batch_size = batch_size)
+
+                target_actions = self.select_actions(network = target_network,
+                                                     states  = next_states,
+                                                     ε       = 0)
+
+            actions = self.select_actions(network = self.controller,
+                                          states  = states,
+                                          ε       = ε)
 
             ε = max(ε * ε_decay, minimum_ε)
 
-            next_actions = self.select_actions(states = next_states, ε = 0)
-
             loss = huber_loss(input  = actions,
-                              target = ground_truth_actions)
+                              target = target_actions)
 
             print(f"loss: {loss.item()}\n")
 
@@ -333,25 +435,32 @@ class PolicyNetwork:
 
     def optimize_policy(self,
                         batch_size = 200,
-                        ε = 0.9,
-                        ε_decay = 0.99,
-                        minimum_ε = 0.02):
+                        iterations = 1200,
+                        ε          = 0.9,
+                        ε_decay    = 0.99,
+                        minimum_ε  = 0.02):
 
         """optimize controller parameters"""
 
-        # branch depending on whether to learn from:
-          # next predicted state reward only
-          # next predicted state reward vs next actual state reward
-          # action vs actual action
-
-        # experience_replay_buffer: dict? list?
+        self.temporal_difference_learning(
+            source     = "ground_truth",
+            batch_size = 500,
+            iterations = 1200)
 
         optimizer = torch.optim.Adam(self.controller.parameters(),
                                      lr=self.learning_rate)
 
-        for iteration in range(self.iterations):
+        for iteration in range(iterations):
 
-            print(f"phase 2, iteration {iteration + 1}")
+            if (    iteration > 0
+                and iteration % 10 == 0):
+
+                self.temporal_difference_learning(
+                    source     = "experience_replay",
+                    batch_size = 500,
+                    iterations = 500)
+
+            print(f"batched training, iteration {iteration + 1}")
 
             print(f"epsilon: {ε:.1%}")
 
@@ -359,12 +468,13 @@ class PolicyNetwork:
 
             states, _, _ = self.get_random_states(batch_size = batch_size)
 
-            actions = self.select_actions(states = states, ε = ε)
+            actions = self.select_actions(network = self.controller,
+                                          states  = states,
+                                          ε       = ε)
 
             ε = max(ε * ε_decay, minimum_ε)
 
             next_states = self.predict_next_states(states, actions)
-            # TODO record experiences to replay buffer, TODO then re-use
 
             rewards = self.calculate_rewards(next_states)
 
@@ -374,7 +484,10 @@ class PolicyNetwork:
 
             # detach gradients to avoid accumulation from looping models
             for feature in dataloader.y_features:
-                next_states[feature].detach()
+                next_states[feature] = next_states[feature].detach()
+
+            self.add_to_replay_buffer(states      = states,
+                                      next_states = next_states)
 
             states  = next_states
 
@@ -385,7 +498,7 @@ class PolicyNetwork:
             torch.save(self.controller.state_dict(),
                        f"trained_models/RL-{iteration + 1}.pth")
 
-    def select_actions(self, states, ε = 0):
+    def select_actions(self, network, states, ε = 0):
         """
         given a batch of states, output a batch of actions
 
@@ -403,7 +516,7 @@ class PolicyNetwork:
 
         controller_inputs = torch.cat(controller_inputs, dim=1)
 
-        actions = self.controller(controller_inputs)
+        actions = network(controller_inputs)
 
         if ε > 0:
 

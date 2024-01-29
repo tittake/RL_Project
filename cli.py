@@ -155,10 +155,9 @@ def train_RL(data_path:              str,
                       data_path            = data_path,
                       # state_feature_count  = 7, # TODO add argument/config
                       # control_output_count = 3, # TODO add argument/config
-                      iterations           = iterations,
                       learning_rate        = learning_rate)
 
-    policy_network.optimize_policy()
+    policy_network.optimize_policy(iterations = iterations)
 
     # TODO what if user wants to test the model just trained without saving it?
 
