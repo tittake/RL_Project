@@ -254,17 +254,34 @@ class PolicyNetwork:
 
         first_feature = dataloader.y_features[0]
 
-        while len(indices) < batch_size:
+        replay_buffer_length = sum(len(batch["states"][first_feature])
+                                   for batch in self.replay_buffer)
 
-            batch_number = randint(a = 0,
-                                   b = len(self.replay_buffer) - 1)
+        if replay_buffer_length < batch_size:
 
-            sample_number = \
-                randint(a = 0,
-                        b = len(self.replay_buffer\
-                                [batch_number]["states"][first_feature]) - 1)
+            # select all indices
 
-            indices.add((batch_number, sample_number))
+            for batch_number, batch in enumerate(self.replay_buffer):
+
+                batch_size = len(batch["states"][first_feature])
+
+                for sample_number in range(batch_size):
+                    indices.add((batch_number, sample_number))
+
+        else: # sample batch_size random indices
+
+            while len(indices) < batch_size:
+
+                batch_number = randint(a = 0,
+                                       b = len(self.replay_buffer) - 1)
+
+                sample_number = \
+                    randint(a = 0,
+                            b = len(self.replay_buffer\
+                                    [batch_number]["states"][first_feature]
+                                    ) - 1)
+
+                indices.add((batch_number, sample_number))
 
         # construct & return dicts of {feature: tensor} for states, next_states
 
@@ -434,7 +451,7 @@ class PolicyNetwork:
             optimizer.step()
 
     def optimize_policy(self,
-                        batch_size = 200,
+                        batch_size = 2,
                         iterations = 1200,
                         ε          = 0.9,
                         ε_decay    = 0.99,
@@ -445,7 +462,7 @@ class PolicyNetwork:
         self.temporal_difference_learning(
             source     = "ground_truth",
             batch_size = 500,
-            iterations = 1200)
+            iterations = 50)
 
         optimizer = torch.optim.Adam(self.controller.parameters(),
                                      lr=self.learning_rate)
@@ -453,7 +470,7 @@ class PolicyNetwork:
         for iteration in range(iterations):
 
             if (    iteration > 0
-                and iteration % 10 == 0):
+                and iteration % 5 == 0):
 
                 self.temporal_difference_learning(
                     source     = "experience_replay",
