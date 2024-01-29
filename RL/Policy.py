@@ -373,7 +373,7 @@ class PolicyNetwork:
           print(f"mean {metric_name} error: {metric.mean().item()}")
 
         self.losses.append({"reward": rewards.mean().item(),
-                            **{metric_name: metric.tolist()
+                            **{metric_name: metric.mean().item()
                                for metric_name, metric
                                 in error_metric.items()}})
 
@@ -451,7 +451,7 @@ class PolicyNetwork:
             optimizer.step()
 
     def optimize_policy(self,
-                        batch_size = 2,
+                        batch_size = 200,
                         iterations = 1200,
                         ε          = 0.9,
                         ε_decay    = 0.99,
@@ -462,7 +462,7 @@ class PolicyNetwork:
         self.temporal_difference_learning(
             source     = "ground_truth",
             batch_size = 500,
-            iterations = 50)
+            iterations = 1200)
 
         optimizer = torch.optim.Adam(self.controller.parameters(),
                                      lr=self.learning_rate)
@@ -470,7 +470,7 @@ class PolicyNetwork:
         for iteration in range(iterations):
 
             if (    iteration > 0
-                and iteration % 5 == 0):
+                and iteration % 10 == 0):
 
                 self.temporal_difference_learning(
                     source     = "experience_replay",
