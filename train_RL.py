@@ -23,7 +23,7 @@ def main(configuration):
             GpModel(data_path        = configuration["data_path"],
                     saved_model_path = configuration["GP"]["model_path"])
 
-    gp_model.test(plot=True)
+    #gp_model.test(plot=True)
 
     policy_network = \
         PolicyNetwork(gp_model      = gp_model,

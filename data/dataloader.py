@@ -148,7 +148,8 @@ def load_data_directory(path):
     for csv_file in csv_files:
         file_path = os.path.join(path, csv_file)
         df = pd.read_csv(file_path)
-        combined_df.append(df)
+        if(iteration%3 == 0):
+            combined_df.append(df)
         iteration += 1
 
     combined_df = pd.concat(combined_df, ignore_index=True)
@@ -292,17 +293,19 @@ def plot_X_train_vs_time(X, names):
 
 if __name__ == "__main__":
     # training_path = "data/some_chill_trajectories/trajectory12_10Hz.csv"
-    # data_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"
-    training_path = "data/two-joint_trajectories_10Hz/trajectory2.csv"
-    testing_path = "data/two-joint_trajectories_10Hz/trajectory3.csv"
+    # data_path = "data/some_chill_trajectories/trajectory17_10Hz.csv"False
+    training_path = "trajectories/10Hz/all_joints/trajectory80.csv"
+    #testing_path = "data/two-joint_trajectories_10Hz/trajectory3.csv"
 
     data_directory = 'data/two-joint_trajectories_10Hz'
 
     X_train, y_train = load_training_data(training_path, True)
-    X_test, y_test = load_testing_data(testing_path, True)
+    #plot_X_train_vs_time(X_train, X_names)
+
+    #X_test, y_test = load_testing_data(testing_path, True)
 
     X_train, X_test, y_train, y_test = load_data_directory(data_directory)
-    print(X_train.shape, X_test.shape)
+    #print(X_train.shape, X_test.shape)
 
     plot_X_train_vs_time(X_train, X_names)
     plot_X_train_vs_time(X_test, X_names)

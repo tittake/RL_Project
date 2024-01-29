@@ -9,6 +9,10 @@ import torch
 from torch import cdist, unsqueeze
 import numpy as np
 import csv
+import matlab.engine
+import socket
+import time
+import struct
 
 import data.dataloader as dataloader
 from RL.Controller import RlController
@@ -21,6 +25,11 @@ RL_results = {"Joint state": [],
               "Torque": [],
               "End-effector location": [],
               "Target": []}
+
+eng = matlab.engine.start_matlab()
+
+HOST = '127.0.0.1'
+PORT = 12345
 
 class PolicyNetwork:
     """reinforcement learning policy"""
@@ -61,6 +70,8 @@ class PolicyNetwork:
                          control_output_count = control_output_count)
 
         self.rewards = []
+
+        self.initialize_connection()
 
     def optimize_policy(self):
         """optimize controller parameters"""
@@ -133,6 +144,10 @@ class PolicyNetwork:
                 RL_results["Joint state"].append(self.state["joints"].cpu().detach().numpy())
                 RL_results["End-effector location"].append(self.state["ee_location"].cpu().detach().numpy())
                 RL_results["Target"].append(self.state["target"].cpu().detach().numpy())
+
+                self.send_joints_to_matlab()
+                time.sleep(1)
+
             print(f"trial {trial + 1} distance covered: "
                   f"{percent_distance_covered:.1%}\n")
 
@@ -158,6 +173,8 @@ class PolicyNetwork:
         print("training time: ", elapsed_model_training)
         if True:
             self.write_RL_results()
+        
+        self.s.close()
 
     def calculate_step_reward(self):
         """calculate and return reward for a single time step"""
@@ -442,3 +459,26 @@ class PolicyNetwork:
             print(f"Data written to {csv_file_path}")
 
             return
+        
+    def initialize_connection(self):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((HOST, PORT))
+   
+
+    def send_joints_to_matlab(self):
+        print(self.state["joints"])
+        
+        joint_array = self.state["joints"].cpu().detach().numpy()
+        joint_array = joint_array.flatten()
+        joint_tensor = self.scalers["joints"].inverse_transform(joint_array.reshape(1, -1))
+
+        joint_tensor = joint_tensor[0]
+        j1, j2, j3 = joint_tensor[:3]
+        print("Joints:",j1, j2, j3)
+        
+        try:
+                data = struct.pack('!ddd', j1, j2, j3)
+                self.s.sendall(data)
+                print("Joints sent successfully")
+        except Exception as e:
+            print(f"Error connecting to MATLAB: {e}")
