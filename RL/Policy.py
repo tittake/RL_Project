@@ -60,7 +60,7 @@ class PolicyNetwork:
             RlController(state_feature_count  = state_feature_count,
                          control_output_count = control_output_count)
 
-        self.rewards = []
+        self.losses = []
 
     def inverse_transform(self, scaler: str, data: torch.Tensor):
         """
@@ -107,7 +107,7 @@ class PolicyNetwork:
         next_states["velocities"] would both be (100, 2).
         """
 
-        # TODO return not only states, but their NEXT states, to calculate rewards!
+        # TODO also include real torque to compare against torque predictions
 
         csv_files = [file for file
                      in listdir(self.data_path)
@@ -260,6 +260,19 @@ class PolicyNetwork:
         rewards = -sum((1 / len(error_metric)) * error
                        for error in error_metric.values())
 
+        for metric_name, metric in error_metric.items():
+          print(f"mean {metric_name} error: {metric.mean().item()}")
+
+        print(f"mean reward: {rewards.mean().item()}")
+
+        self.losses.append({"reward": rewards.mean().item(),
+                            **{metric_name: metric.tolist()
+                               for metric_name, metric
+                                in error_metric.items()}})
+
+        with open("loss.json", "w") as loss_log:
+            json.dump(self.losses, loss_log, indent = 1)
+
         return rewards
 
     def optimize_policy(self):
@@ -268,6 +281,12 @@ class PolicyNetwork:
         # TODO add `batch_size` as argument
         # TODO remove references to `trials`
 
+        ε = 0.9
+
+        ε_decay = 0.99
+
+        minimum_ε = 0.02
+
         optimizer = torch.optim.Adam(self.controller.parameters(),
                                      lr=self.learning_rate)
 
@@ -275,15 +294,22 @@ class PolicyNetwork:
 
         for iteration in range(self.iterations):
 
+            print(f"iteration {iteration + 1}")
+
+            print(f"epsilon: {ε:.1%}")
+
             optimizer.zero_grad()
 
-            states, next_states = self.get_random_states(batch_size = 400)
+            states, next_states = self.get_random_states(batch_size = 2)
+            # TODO try loss with temporal difference
+            # TODO try calculating loss between real torque & controller torque
 
-            # try calculating loss between real next_states & model predictions
+            actions = self.select_actions(states = states, ε = ε)
 
-            actions = self.select_actions(states)
+            ε = max(ε * ε_decay, minimum_ε)
 
             states = self.predict_next_states(states, actions)
+            # TODO save experiences to replay buffer, TODO then re-use
 
             rewards = self.calculate_rewards(states)
             # rewards = self.calculate_rewards(next_states)
@@ -299,7 +325,7 @@ class PolicyNetwork:
             torch.save(self.controller.state_dict(),
                        f"trained_models/RL-{iteration + 1}.pth")
 
-    def select_actions(self, states):
+    def select_actions(self, states, ε = 0):
         """
         given a batch of states, output a batch of actions
 
@@ -317,7 +343,7 @@ class PolicyNetwork:
 
         exploiting = False
 
-        if random() <= 0.5:
+        if random() <= (1 - ε):
 
             print("exploiting...")
 
