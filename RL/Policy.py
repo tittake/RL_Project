@@ -115,6 +115,8 @@ class PolicyNetwork:
 
         list_of_states      = []
 
+        actions = []
+
         while len(list_of_states) < batch_size:
 
             for csv_file in csv_files:
@@ -135,9 +137,9 @@ class PolicyNetwork:
                                              + round(0.2 * last_line_in_file)),
                                        b = last_line_in_file)
 
-                state = {}
+                states = {}
 
-                next_state = {}
+                next_states = {}
 
                 with open(file_path, 'r') as trajectory_file:
 
@@ -147,9 +149,17 @@ class PolicyNetwork:
 
                         if index in (state_index, next_state_index):
 
-                            the_state = (state
-                                         if index == state_index
-                                         else next_state)
+                            if index == state_index:
+
+                                the_state = states
+
+                                actions.append(
+                                   [float(row[feature])
+                                    for feature
+                                    in dataloader.features["torques"]])
+
+                            else:
+                                the_state = next_states
 
                             for feature in dataloader.y_features:
 
@@ -160,7 +170,7 @@ class PolicyNetwork:
 
                         if index == target_index:
 
-                            for the_state in (state, next_state):
+                            for the_state in (states, next_states):
 
                                 the_state["target"] = \
                                     [float(row[feature])
@@ -169,9 +179,9 @@ class PolicyNetwork:
 
                             break # quit looping this particular CSV file
 
-                    assert "target" in state
+                    assert "target" in states
 
-                    list_of_states.append((state, next_state))
+                    list_of_states.append((states, next_states))
 
                 if len(list_of_states) == batch_size:
                     break # quit looping over CSV files
@@ -186,8 +196,8 @@ class PolicyNetwork:
 
             for feature in ["target", *dataloader.y_features]:
 
-                feature_data = [state[index][feature]
-                                for state in list_of_states]
+                feature_data = [states[index][feature]
+                                for states in list_of_states]
 
                 scaled_feature_data = \
                     self.scalers[feature].transform(feature_data)
@@ -197,7 +207,12 @@ class PolicyNetwork:
                                  device = self.device,
                                  dtype  = self.dtype)
 
-        return scaled_states, scaled_next_states
+        actions = torch.tensor(data   = (self.scalers["torques"]
+                                         .transform(actions)),
+                               device = self.device,
+                               dtype  = self.dtype)
+
+        return scaled_states, actions, scaled_next_states
 
     def calculate_rewards(self, states):
         """calculate and return rewards for a batch of states"""
@@ -300,13 +315,22 @@ class PolicyNetwork:
 
             optimizer.zero_grad()
 
-            states, next_states = self.get_random_states(batch_size = 2)
+            states, ground_truth_actions, next_states = \
+                self.get_random_states(batch_size = 4)
+
             # TODO try loss with temporal difference
             # TODO try calculating loss between real torque & controller torque
 
             actions = self.select_actions(states = states, ε = ε)
 
             ε = max(ε * ε_decay, minimum_ε)
+
+            ###
+
+            # branch depending on whether to learn from:
+              # next predicted state reward only
+              # next predicted state reward vs next actual state reward
+              # action vs actual action
 
             states = self.predict_next_states(states, actions)
             # TODO save experiences to replay buffer, TODO then re-use
@@ -317,6 +341,8 @@ class PolicyNetwork:
             loss = -rewards.mean()
 
             print(f"loss: {loss.item()}\n")
+
+            ###
 
             loss.backward()
 
