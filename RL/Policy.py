@@ -333,7 +333,8 @@ class RlPolicy:
 
         error_metric = {}
 
-        for vector_metric in ("accelerations", "velocities"):
+        # for vector_metric in ("accelerations", "velocities"):
+        for vector_metric in ("accelerations", ):
 
             vectors = \
                 self.inverse_transform(scaler = vector_metric,
