@@ -1,7 +1,7 @@
 """module containing class to model a Gaussian Process"""
 
 from math import inf
-from os import getcwd, mkdir
+from os import mkdir
 from os.path import dirname, isdir, isfile, join
 from pathlib import Path
 import time
@@ -57,7 +57,7 @@ class GpModel:
         self.X_train = self.X_train.to(self.device, dtype=torch.float64)
         self.y_train = self.y_train.to(self.device, dtype=torch.float64)
 
-        if not saved_model_path: # new model
+        if saved_model_path is None: # new model
 
             self.input_features  = dataloader.X_names
             self.output_features = dataloader.y_names
@@ -71,7 +71,7 @@ class GpModel:
 
         else: # pretrained model
 
-            folder = dirname(join(getcwd(), saved_model_path))
+            folder = dirname(saved_model_path)
 
             metadata_path = join(folder,
                                  Path(saved_model_path).stem
@@ -107,7 +107,7 @@ class GpModel:
                 ard_num_dims  = len(self.input_features)
             ).to(self.device, torch.float64)
 
-        if saved_model_path:
+        if saved_model_path is not None:
 
             state_dict = torch.load(saved_model_path)
 
@@ -127,6 +127,10 @@ class GpModel:
             save_model_to:    path to save trained model parameters to
             plot_loss (bool): whether to plot the loss function
         """
+
+        if not save_model_to:
+            print("WARNING: no path given for argument: `save_model_to` - "
+                  "trained model will not be saved!\n")
 
         if data_path is None:
             if self.X_train is None:
@@ -174,7 +178,7 @@ class GpModel:
 
         best_loss = inf
 
-        self.loss_history = []
+        loss_history = []
 
         with tqdm(total = iterations) as progress_bar:
 
@@ -205,7 +209,7 @@ class GpModel:
 
                 progress_bar.update()
 
-                self.loss_history.append(loss.item())
+                loss_history.append(loss.item())
 
         end_model_training = time.perf_counter()
         elapsed_model_training = end_model_training - start_model_training
@@ -219,7 +223,7 @@ class GpModel:
             # Plot for training loss
             _, ax_loss = plt.subplots(figsize=(6, 4))
 
-            ax_loss.plot(self.loss_history, label='Training Loss')
+            ax_loss.plot(loss_history, label='Training Loss')
             ax_loss.set_title('Training Loss Over Iterations')
             ax_loss.set_xlabel('Iteration')
             ax_loss.set_ylabel('Loss')
@@ -229,7 +233,7 @@ class GpModel:
 
     def save_model(self, path):
 
-        folder = dirname(join(getcwd(), path))
+        folder = dirname(path)
 
         if not isdir(folder):
             mkdir(folder)

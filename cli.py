@@ -59,10 +59,6 @@ def train_GP(data_path:     str,
 
     """`GP train` behavior"""
 
-    if not save_model_to:
-        print("WARNING: no path given for argument: `save_model_to` - "
-              "trained model will not be saved!\n")
-
     gp_model = GpModel(data_path = data_path)
 
     gp_model.train(iterations    = iterations,
@@ -126,6 +122,17 @@ def add_RL_training_parser_arguments(parser):
                         type     = str,
                         required = True)
 
+    parser.add_argument("-s",
+                        "--save_model_to",
+                        type     = str,
+                        required = False)
+
+    parser.add_argument("-b",
+                        "--batch_size",
+                        type     = int,
+                        required = False,
+                        default  = 200)
+
     parser.add_argument("-i",
                         "--iterations",
                         type     = int,
@@ -140,10 +147,12 @@ def add_RL_training_parser_arguments(parser):
                         default  = 0.01)
 
 
-def train_RL(data_path:              str,
-             GP_model_path:          str,
-             iterations:             int,
-             learning_rate:          float):
+def train_RL(data_path:     str,
+             GP_model_path: str,
+             save_model_to: str,
+             batch_size:    int,
+             iterations:    int,
+             learning_rate: float):
 
     """`RL train` behavior"""
 
@@ -155,8 +164,10 @@ def train_RL(data_path:              str,
                          # state_feature_count  = 7, # TODO add argument
                          # control_output_count = 3, # TODO add argument
 
-    rl_policy.train(iterations    = iterations,
-                    learning_rate = learning_rate)
+    rl_policy.train(batch_size    = batch_size,
+                    iterations    = iterations,
+                    learning_rate = learning_rate,
+                    save_model_to = save_model_to)
 
     # TODO what if user wants to test the model just trained without saving it?
 

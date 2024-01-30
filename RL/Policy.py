@@ -3,9 +3,10 @@
 from copy import deepcopy
 import csv
 import json
-from math import sqrt
-from os import listdir
-from os.path import join
+from math import inf, sqrt
+from os import listdir, mkdir
+from os.path import dirname, isdir, join
+from pathlib import Path
 from random import randint, random
 from typing import Literal
 
@@ -14,6 +15,7 @@ import sklearn
 import time
 import torch
 from torch import cdist, unsqueeze
+from tqdm import tqdm
 
 import data.dataloader as dataloader
 from RL.DQN import DQN
@@ -31,7 +33,8 @@ class RlPolicy:
                  gp_model: GpModel,
                  data_path:            str,
                  state_feature_count:  int = 9,
-                 control_output_count: int = 3):
+                 control_output_count: int = 3,
+                 saved_model_path:     str = None):
 
         super().__init__()
 
@@ -59,7 +62,11 @@ class RlPolicy:
         self.network = DQN(state_feature_count  = state_feature_count,
                            control_output_count = control_output_count)
 
-        self.losses = []
+        if saved_model_path is not None:
+
+            state_dict = torch.load(saved_model_path)
+
+            self.network.load_state_dict(state_dict)
 
         self.replay_buffer = []
 
@@ -370,14 +377,6 @@ class RlPolicy:
         for metric_name, metric in error_metric.items():
           print(f"mean {metric_name} error: {metric.mean().item()}")
 
-        self.losses.append({"reward": rewards.mean().item(),
-                            **{metric_name: metric.mean().item()
-                               for metric_name, metric
-                                in error_metric.items()}})
-
-        with open("loss.json", "w") as loss_log:
-            json.dump(self.losses, loss_log, indent = 1)
-
         return rewards
 
     def temporal_difference_learning(
@@ -402,63 +401,85 @@ class RlPolicy:
 
         self.network.train()
 
-        for iteration in range(iterations):
+        print(f"temporal difference learning from "
+              f"{source.replace('_', ' ')}")
 
-            if (    source == "experience_replay"
-                and iteration % 10 == 0):
+        with tqdm(total = iterations) as progress_bar:
 
-                target_network = \
-                    DQN(state_feature_count  = self.state_feature_count,
-                        control_output_count = self.control_output_count)
+            for iteration in range(iterations):
 
-                target_network.eval()
+                if (    source == "experience_replay"
+                    and iteration % 10 == 0):
 
-            print(f"temporal difference learning from "
-                  f"{source.replace('_', ' ')}, "
-                  f"iteration {iteration + 1}")
+                    target_network = \
+                        DQN(state_feature_count  = self.state_feature_count,
+                            control_output_count = self.control_output_count)
 
-            print(f"epsilon: {ε:.1%}")
+                    target_network.eval()
 
-            optimizer.zero_grad()
+                optimizer.zero_grad()
 
-            if source == "ground_truth":
+                if source == "ground_truth":
 
-                states, target_actions, next_states = \
-                    self.get_random_states(batch_size = batch_size)
+                    states, target_actions, next_states = \
+                        self.get_random_states(batch_size = batch_size)
 
-            elif source == "experience_replay":
+                elif source == "experience_replay":
 
-                states, next_states = \
-                    self.fetch_experiences_from_buffer(batch_size = batch_size)
+                    states, next_states = \
+                        self.fetch_experiences_from_buffer(
+                            batch_size = batch_size)
 
-                target_actions = self.select_actions(network = target_network,
-                                                     states  = next_states,
-                                                     ε       = 0)
+                    target_actions = \
+                        self.select_actions(network = target_network,
+                                            states  = next_states,
+                                            ε       = 0,
+                                            quiet   = True)
 
-            actions = self.select_actions(network = self.network,
-                                          states  = states,
-                                          ε       = ε)
+                actions = self.select_actions(network = self.network,
+                                              states  = states,
+                                              ε       = ε,
+                                              quiet   = True)
 
-            ε = max(ε * ε_decay, minimum_ε)
+                ε = max(ε * ε_decay, minimum_ε)
 
-            loss = huber_loss(input  = actions,
-                              target = target_actions)
+                loss = huber_loss(input  = actions,
+                                  target = target_actions)
 
-            print(f"loss: {loss.item()}\n")
+                progress_bar.set_description(f"loss: {loss.item()}, "
+                                             f"epsilon: {ε:.1%}")
 
-            loss.backward()
+                loss.backward()
+                optimizer.step()
 
-            optimizer.step()
+                progress_bar.update()
 
     def train(self,
-              batch_size:    int   = 200,
+              batch_size:    int   = 400,
               iterations:    int   = 1200,
-              learning_rate: float = 0.001,
+              learning_rate: float = 0.01,
+              save_model_to: str   = None,
               ε:             float = 0.9,
               ε_decay:       float = 0.99,
               minimum_ε:     float = 0.02):
 
         # TODO docstring
+
+        if save_model_to is None:
+
+            print("WARNING: no path given for argument: `save_model_to` - "
+                  "trained model will not be saved!\n")
+
+        else:
+
+            folder = dirname(save_model_to)
+
+            if not isdir(folder):
+                mkdir(folder)
+
+            loss_log_path = join(folder,
+                                 Path(save_model_to).stem
+                                 + "-loss.json")
 
         self.temporal_difference_learning(
             source     = "ground_truth",
@@ -468,6 +489,10 @@ class RlPolicy:
         optimizer = torch.optim.Adam(self.network.parameters(),
                                      lr = learning_rate)
 
+        best_loss = inf
+
+        loss_history = []
+
         for iteration in range(iterations):
 
             if (    iteration > 0
@@ -476,7 +501,8 @@ class RlPolicy:
                 self.temporal_difference_learning(
                     source     = "experience_replay",
                     batch_size = 500,
-                    iterations = 1200)
+                    iterations = 1200,
+                    ε          = ε)
 
             print(f"batched training, iteration {iteration + 1}")
 
@@ -498,6 +524,19 @@ class RlPolicy:
 
             loss = -rewards.mean()
 
+            if save_model_to:
+
+                if loss.item() < best_loss:
+
+                    best_loss = loss.item()
+
+                    torch.save(self.network.state_dict(), save_model_to)
+
+                loss_history.append(loss.item())
+
+                with open(loss_log_path, "w") as loss_log:
+                    json.dump(loss_history, loss_log, indent = 1)
+
             print(f"loss: {loss.item()}\n")
 
             # detach gradients to avoid accumulation from looping models
@@ -513,10 +552,7 @@ class RlPolicy:
 
             optimizer.step()
 
-            torch.save(self.network.state_dict(),
-                       f"trained_models/RL-{iteration + 1}.pth")
-
-    def select_actions(self, network, states, ε = 0):
+    def select_actions(self, network, states, ε = 0, quiet = False):
         """
         given a batch of states, output a batch of actions
 
@@ -540,11 +576,13 @@ class RlPolicy:
 
             if random() <= (1 - ε):
 
-                print("exploiting...")
+                if quiet == False:
+                    print("exploiting...")
 
             else:
 
-                print("exploring...")
+                if quiet == False:
+                    print("exploring...")
 
                 reparameterization_ε = 0.1 # TODO add argument, disambiguate
 
