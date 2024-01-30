@@ -102,10 +102,7 @@ class RlPolicy:
         A random state, including a random target, is fetched from each
         trajectory until the specified batch size is reached. If the number of
         trajectories is smaller than the desired batch size, the trajectories
-        will be iterated further until the desired batch size is reached. The
-        random state is taken from somewhere in the beginning 80% of each
-        trajectory's data. The target is taken from somewhere between 20% after
-        the initial state and the end of the trajectory.
+        will be iterated further until the desired batch size is reached.
 
         returns tuple of dicts (states, next_states)
 
@@ -141,12 +138,11 @@ class RlPolicy:
                 last_line_in_file = lines_in_file - 2
 
                 state_index = randint(a = 1,
-                                      b = round(0.8 * last_line_in_file))
+                                      b = last_line_in_file - 1)
 
                 next_state_index = state_index + 1
 
-                target_index = randint(a =  (state_index
-                                             + round(0.2 * last_line_in_file)),
+                target_index = randint(a = state_index + 1,
                                        b = last_line_in_file)
 
                 states = {}
