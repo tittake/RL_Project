@@ -70,6 +70,16 @@ using [data/downsample.py](data/downsample.py).
 
 ## Usage
 
+Pre-trained models are available in the OneDrive storage location
+
+If you wish to replicate our workflow, the basic steps consist of:
+
+- training the GP model
+
+- using the GP model to train the RL model
+
+- using the RL model to generate control output torques
+
 ### Python API
 
 For examples of how to instantiate and invoke the GP and RL models
@@ -128,7 +138,8 @@ usage:
     python cli.py RL train \
                      -d / --data_path DATA_PATH \
                      -g / --GP_model_path GP_MODEL_PATH \
-                     [-t / --trials TRIALS] \
+                     -s / --save_model_to PATH \
+                     [-b / --batch_size BATCH_SIZE] \
                      [-i / --iterations ITERATIONS] \
                      [-l / --lr / --learning_rate LEARNING_RATE]
 
@@ -136,4 +147,23 @@ example:
 
     python cli.py rl train \
                      --data_path trajectories/10Hz/all_joints \
-                     --gp_model_path trained_models/all_joints.pth
+                     --gp_model_path trained_models/all_joints.pth \
+                     --save_model_to PATH trained_models/RL/rl_model.pth
+
+#### simulate a random trajectory:
+
+usage:
+
+    python cli.py RL simulate_random_trajectory
+                     -d / --data_path DATA_PATH \
+                     -g / --gp_model_path GP_MODEL_PATH \
+                     -r / --rl_model_path RL_MODEL_PATH \
+                     [-i / --iterations ITERATIONS] \
+                     [-o / --online_learning TRUE | FALSE]
+
+example:
+
+    python cli.py rl simulate_random_trajectory \
+                     --data_path trajectories/10Hz/all_joints \
+                     --gp_model_path trained_models/GP/all_joints.pth \
+                     --rl_model_path trained_models/RL/rl_model.pth
