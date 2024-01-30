@@ -116,8 +116,6 @@ class RlPolicy:
         next_states["velocities"] would both be (100, 2).
         """
 
-        # TODO also include real torque to compare against torque predictions
-
         csv_files = [file for file
                      in listdir(self.data_path)
                      if file.endswith('.csv')]
@@ -224,7 +222,12 @@ class RlPolicy:
 
     def add_to_replay_buffer(self, states, next_states):
 
-        # TODO docstring
+        """
+        adds an experience to the experience replay buffer
+
+        An experience consists of a state transition, here comprising
+        `states` and `next_states`.
+        """
 
         self.replay_buffer.append({"states":      states,
                                    "next_states": next_states})
@@ -249,7 +252,11 @@ class RlPolicy:
 
     def fetch_experiences_from_buffer(self, batch_size):
 
-        # TODO docstring
+        """
+        returns a random sample of `batch_size` from the experience replay
+        buffer, or as many samples as possible if `batch_size` is greater than
+        the number of experiences in the buffer
+        """
 
         # generate batch_size unique indices like (batch_number, sample_number)
 
@@ -384,7 +391,19 @@ class RlPolicy:
         ε_decay:       float = 0.99,
         minimum_ε:     float = 0.02):
 
-        # TODO docstring
+        """
+        trains on temporal differences, either from ground truth trajectory
+        data, or from experiences saved in the experience replay buffer
+
+        A target DQN, separate from the main DQN, is instantiated in order to
+        predict the Q-value action for the next state. The idea is to align the
+        action at time t more closely to the optimal action at time t + 1.
+
+        Huber Loss is used between the actions selected at the two time steps.
+
+        ε and related parameters can be used for epsilon decay. ε represents
+        the probability of exploration, rather than exploitation.
+        """
 
         assert source in ("ground_truth", "experience_replay")
 
@@ -480,12 +499,12 @@ class RlPolicy:
                 if quiet == False:
                     print("exploring...")
 
-                reparameterization_ε = 0.1 # TODO add argument, disambiguate
+                reparameterization_gain = 0.1 # TODO add argument
 
                 # add Gaussian noise for exploration (reparameterization trick)
                 # https://sassafras13.github.io/ReparamTrick/
                 actions = (  actions
-                           + reparameterization_ε
+                           + reparameterization_gain
                            * torch.randn_like(actions)
                            * actions.std())
 
@@ -535,7 +554,12 @@ class RlPolicy:
               ε_decay:       float = 0.99,
               minimum_ε:     float = 0.02):
 
-        # TODO docstring
+        """
+        The training process is as follows:
+          - temporal difference (TD) learning on the ground-truth trajectories
+          - reward-based reinforcement learning
+          - experience replay TD learning after every 10 batches
+        """
 
         if save_model_to is None:
 
@@ -630,7 +654,11 @@ class RlPolicy:
                             iterations      = 100,
                             online_learning = True):
 
-        # TODO docstring
+        """
+        simulate the trajectory from a given start state to a given target
+        location, using the trained RL & GP models, optionally continuing
+        training online
+        """
 
         def display_state(state):
 
@@ -682,7 +710,7 @@ class RlPolicy:
             self.network.train()
 
             optimizer = torch.optim.Adam(self.network.parameters(),
-                                         lr = 0.01) # TODO lr argument
+                                         lr = 0.01) # TODO add lr argument
 
         else:
 
@@ -733,7 +761,10 @@ class RlPolicy:
                                    iterations      = 100,
                                    online_learning = True):
 
-        # TODO docstring
+        """
+        randomly sample a start state and target location from ground-truth
+        data, then simulate the trajectory using the RL & GP models
+        """
 
         if online_learning:
             self.network.train()
