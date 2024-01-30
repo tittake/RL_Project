@@ -1,5 +1,6 @@
 """module containing reinforcement learning policy class"""
 
+from copy import deepcopy
 import csv
 import json
 from math import inf, sqrt
@@ -331,8 +332,8 @@ class RlPolicy:
         error_metric = {}
 
         # for vector_metric in ("accelerations", "velocities"):
-        for vector_metric in ("accelerations", ):
-        # for vector_metric in ("velocities", ):
+        # for vector_metric in ("accelerations", ):
+        for vector_metric in ("velocities", ):
 
             vectors = \
                 self.inverse_transform(scaler = vector_metric,
@@ -418,9 +419,7 @@ class RlPolicy:
                 if (    source == "experience_replay"
                     and iteration % 10 == 0):
 
-                    target_network = \
-                        DQN(state_feature_count  = self.state_feature_count,
-                            control_output_count = self.control_output_count)
+                    target_network = deepcopy(self.network)
 
                     target_network.eval()
 

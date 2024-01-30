@@ -122,6 +122,11 @@ def add_RL_training_parser_arguments(parser):
                         type     = str,
                         required = True)
 
+    parser.add_argument("-m",
+                        "--saved_model_path",
+                        type     = str,
+                        required = False)
+
     parser.add_argument("-s",
                         "--save_model_to",
                         type     = str,
@@ -147,20 +152,22 @@ def add_RL_training_parser_arguments(parser):
                         default  = 0.001)
 
 
-def train_RL(data_path:     str,
-             GP_model_path: str,
-             save_model_to: str,
-             batch_size:    int,
-             iterations:    int,
-             learning_rate: float):
+def train_RL(data_path:        str,
+             GP_model_path:    str,
+             saved_model_path: str,
+             save_model_to:    str,
+             batch_size:       int,
+             iterations:       int,
+             learning_rate:    float):
 
     """`RL train` behavior"""
 
     gp_model = GpModel(data_path        = data_path,
                        saved_model_path = GP_model_path)
 
-    rl_policy = RlPolicy(gp_model  = gp_model,
-                         data_path = data_path)
+    rl_policy = RlPolicy(gp_model         = gp_model,
+                         data_path        = data_path,
+                         saved_model_path = saved_model_path)
                          # state_feature_count  = 7, # TODO add argument
                          # control_output_count = 3, # TODO add argument
 
