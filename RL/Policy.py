@@ -678,8 +678,15 @@ class RlPolicy:
         # TODO test without online_learning
 
         if online_learning:
+
+            self.network.train()
+
             optimizer = torch.optim.Adam(self.network.parameters(),
                                          lr = 0.01) # TODO lr argument
+
+        else:
+
+            self.network.eval()
 
         for iteration in range(iterations):
 
