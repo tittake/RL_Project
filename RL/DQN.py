@@ -1,11 +1,11 @@
-"""module containing PyTorch neural network used for RL Q-lookup"""
+"""module containing PyTorch deep Q-learning neural network"""
 
 import torch
 from torch import nn
 
 
-class RlController(nn.Module):
-    """PyTorch neural network used for deep RL Q-lookup"""
+class DQN(nn.Module):
+    """PyTorch neural network for RL Q-value lookup"""
 
     def __init__(self, state_feature_count, control_output_count):
 

@@ -7,6 +7,7 @@ from math import sqrt
 from os import listdir
 from os.path import join
 from random import randint, random
+from typing import Literal
 
 import numpy
 import sklearn
@@ -15,7 +16,7 @@ import torch
 from torch import cdist, unsqueeze
 
 import data.dataloader as dataloader
-from RL.Controller import RlController
+from RL.DQN import DQN
 
 from GP.GpModel import GpModel
 import matplotlib.pyplot as plt
@@ -23,31 +24,29 @@ import matplotlib.pyplot as plt
 torch.autograd.set_detect_anomaly(True)
 
 
-class PolicyNetwork:
+class RlPolicy:
     """reinforcement learning policy"""
 
     def __init__(self,
                  gp_model: GpModel,
                  data_path:            str,
                  state_feature_count:  int = 9,
-                 control_output_count: int = 3,
-                 learning_rate:      float = 0.001):
+                 control_output_count: int = 3):
 
         super().__init__()
 
         self.gp_model      = gp_model
         self.data_path     = data_path
-        self.learning_rate = learning_rate
 
         self.state_feature_count  = state_feature_count
         self.control_output_count = control_output_count
 
         # TODO make this configurable from someplace
         # TODO compute state_feature_count from this (how to know target dim?)
-        self.controller_input_features = ("target",
-                                          "joints",
-                                          "velocities",
-                                          "accelerations")
+        self.input_features = ("target",
+                               "joints",
+                               "velocities",
+                               "accelerations")
 
         self.device = torch.device("cuda:0"
                                    if torch.cuda.is_available()
@@ -57,9 +56,8 @@ class PolicyNetwork:
 
         self.scalers = self.gp_model.scalers
 
-        self.controller = \
-            RlController(state_feature_count  = state_feature_count,
-                         control_output_count = control_output_count)
+        self.network = DQN(state_feature_count  = state_feature_count,
+                           control_output_count = control_output_count)
 
         self.losses = []
 
@@ -382,24 +380,27 @@ class PolicyNetwork:
 
         return rewards
 
-    def temporal_difference_learning(self,
-                                     source,
-                                     batch_size = 500,
-                                     iterations = 500,
-                                     ε          = 0.9,
-                                     ε_decay    = 0.99,
-                                     minimum_ε  = 0.02):
+    def temporal_difference_learning(
+        self,
+        source:        Literal["ground_truth",
+                               "experience_replay"],
+        batch_size:    int   = 500,
+        iterations:    int   = 1200,
+        learning_rate: float = 0.001,
+        ε:             float = 0.9,
+        ε_decay:       float = 0.99,
+        minimum_ε:     float = 0.02):
 
         # TODO docstring
 
         assert source in ("ground_truth", "experience_replay")
 
-        optimizer = torch.optim.Adam(self.controller.parameters(),
-                                     lr=self.learning_rate)
+        optimizer = torch.optim.Adam(self.network.parameters(),
+                                     lr = learning_rate)
 
         huber_loss = torch.nn.HuberLoss()
 
-        self.controller.train()
+        self.network.train()
 
         for iteration in range(iterations):
 
@@ -407,8 +408,7 @@ class PolicyNetwork:
                 and iteration % 10 == 0):
 
                 target_network = \
-                    RlController(
-                        state_feature_count  = self.state_feature_count,
+                    DQN(state_feature_count  = self.state_feature_count,
                         control_output_count = self.control_output_count)
 
                 target_network.eval()
@@ -435,7 +435,7 @@ class PolicyNetwork:
                                                      states  = next_states,
                                                      ε       = 0)
 
-            actions = self.select_actions(network = self.controller,
+            actions = self.select_actions(network = self.network,
                                           states  = states,
                                           ε       = ε)
 
@@ -450,22 +450,23 @@ class PolicyNetwork:
 
             optimizer.step()
 
-    def optimize_policy(self,
-                        batch_size = 200,
-                        iterations = 1200,
-                        ε          = 0.9,
-                        ε_decay    = 0.99,
-                        minimum_ε  = 0.02):
+    def train(self,
+              batch_size:    int   = 200,
+              iterations:    int   = 1200,
+              learning_rate: float = 0.001,
+              ε:             float = 0.9,
+              ε_decay:       float = 0.99,
+              minimum_ε:     float = 0.02):
 
-        """optimize controller parameters"""
+        # TODO docstring
 
         self.temporal_difference_learning(
             source     = "ground_truth",
             batch_size = 500,
             iterations = 1200)
 
-        optimizer = torch.optim.Adam(self.controller.parameters(),
-                                     lr=self.learning_rate)
+        optimizer = torch.optim.Adam(self.network.parameters(),
+                                     lr = learning_rate)
 
         for iteration in range(iterations):
 
@@ -475,7 +476,7 @@ class PolicyNetwork:
                 self.temporal_difference_learning(
                     source     = "experience_replay",
                     batch_size = 500,
-                    iterations = 500)
+                    iterations = 1200)
 
             print(f"batched training, iteration {iteration + 1}")
 
@@ -485,7 +486,7 @@ class PolicyNetwork:
 
             states, _, _ = self.get_random_states(batch_size = batch_size)
 
-            actions = self.select_actions(network = self.controller,
+            actions = self.select_actions(network = self.network,
                                           states  = states,
                                           ε       = ε)
 
@@ -512,7 +513,7 @@ class PolicyNetwork:
 
             optimizer.step()
 
-            torch.save(self.controller.state_dict(),
+            torch.save(self.network.state_dict(),
                        f"trained_models/RL-{iteration + 1}.pth")
 
     def select_actions(self, network, states, ε = 0):
@@ -529,7 +530,7 @@ class PolicyNetwork:
 
         controller_inputs = [states[feature]
                              for feature
-                             in self.controller_input_features]
+                             in self.input_features]
 
         controller_inputs = torch.cat(controller_inputs, dim=1)
 

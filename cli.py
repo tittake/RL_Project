@@ -3,7 +3,7 @@
 from argparse import ArgumentParser
 
 from GP.GpModel import GpModel
-from RL.Policy import PolicyNetwork
+from RL.Policy import RlPolicy
 
 # TODO change all imports to package-relative to enable running as module
 # TODO test if argcomplete will work for tab completion on windows too
@@ -150,14 +150,13 @@ def train_RL(data_path:              str,
     gp_model = GpModel(data_path        = data_path,
                        saved_model_path = GP_model_path)
 
-    policy_network = \
-        PolicyNetwork(gp_model             = gp_model,
-                      data_path            = data_path,
-                      # state_feature_count  = 7, # TODO add argument/config
-                      # control_output_count = 3, # TODO add argument/config
-                      learning_rate        = learning_rate)
+    rl_policy = RlPolicy(gp_model  = gp_model,
+                         data_path = data_path)
+                         # state_feature_count  = 7, # TODO add argument
+                         # control_output_count = 3, # TODO add argument
 
-    policy_network.optimize_policy(iterations = iterations)
+    rl_policy.train(iterations    = iterations,
+                    learning_rate = learning_rate)
 
     # TODO what if user wants to test the model just trained without saving it?
 

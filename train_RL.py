@@ -3,7 +3,7 @@
 import yaml
 
 from GP.GpModel import GpModel
-from RL.Policy import PolicyNetwork
+from RL.Policy import RlPolicy
 
 
 def main(configuration):
@@ -25,14 +25,11 @@ def main(configuration):
 
     gp_model.test(plot=True)
 
-    policy_network = \
-        PolicyNetwork(gp_model      = gp_model,
-                      data_path     = configuration["data_path"],
-                      iterations    = configuration["RL"]["iterations"],
-                      trials        = configuration["RL"]["trials"],
-                      learning_rate = configuration["RL"]["learning_rate"])
+    rl_policy = RlPolicy(gp_model  = gp_model,
+                         data_path = configuration["data_path"])
 
-    policy_network.optimize_policy()
+    rl_policy.train(iterations    = configuration["RL"]["iterations"],
+                    learning_rate = configuration["RL"]["learning_rate"])
 
 
 if __name__ == "__main__":
