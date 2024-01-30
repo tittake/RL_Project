@@ -144,7 +144,7 @@ class GpModel:
 
                 self.X_train, self.y_train = \
                     dataloader.load_training_data(data_path = data_path,
-                                                  normalize  = True)
+                                                  normalize = True)
 
             elif isdir(data_path):
 

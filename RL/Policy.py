@@ -331,6 +331,7 @@ class RlPolicy:
 
         # for vector_metric in ("accelerations", "velocities"):
         for vector_metric in ("accelerations", ):
+        # for vector_metric in ("velocities", ):
 
             vectors = \
                 self.inverse_transform(scaler = vector_metric,
@@ -356,14 +357,13 @@ class RlPolicy:
                 (error_metric[vector_metric] / torch.pi)
 
         error_metric["euclidian_distance"] = \
-            torch.norm(states["ee_location"] - states["target"], dim=1)
+            torch.norm(states["target"] - states["ee_location"], dim=1)
 
         # normalize Euclidian distance to range (0, 1)
         # x and y coordinates should be between -1 and 1
         # thus maximum possible distance is [-1, -1] → [1, 1] = 2 * sqrt(2)
         error_metric["euclidian_distance"] = \
-            torch.div(error_metric["euclidian_distance"],
-                      (2 * sqrt(2)))
+            (error_metric["euclidian_distance"] / sqrt(2))
 
         rewards = -sum((1 / len(error_metric)) * error
                        for error in error_metric.values())
@@ -444,15 +444,92 @@ class RlPolicy:
                                              f"epsilon: {ε:.1%}")
 
                 loss.backward()
-
                 optimizer.step()
 
                 progress_bar.update()
 
+    def select_actions(self, network, states, ε = 0, quiet = False):
+        """
+        given a batch of states, output a batch of actions
+
+        currently alternates between exploiting & exploring with ε = 0.5
+        """
+
+        def print_value(title, tensor):
+            """print a tensor's value for debugging"""
+
+            print(f"{title}: {tensor.cpu().detach().numpy()}")
+
+        controller_inputs = [states[feature]
+                             for feature
+                             in self.input_features]
+
+        controller_inputs = torch.cat(controller_inputs, dim=1)
+
+        actions = network(controller_inputs)
+
+        if ε > 0:
+
+            if random() <= (1 - ε):
+
+                if quiet == False:
+                    print("exploiting...")
+
+            else:
+
+                if quiet == False:
+                    print("exploring...")
+
+                reparameterization_ε = 0.1 # TODO add argument, disambiguate
+
+                # add Gaussian noise for exploration (reparameterization trick)
+                # https://sassafras13.github.io/ReparamTrick/
+                actions = (  actions
+                           + reparameterization_ε
+                           * torch.randn_like(actions)
+                           * actions.std())
+
+        # for feature, value in states.items():
+            # print_value(title = feature, tensor = value)
+
+        return actions
+
+    def predict_next_states(self, states, actions):
+        """
+        given a batch of states and a batch of actions,
+        return the batch of next states
+        """
+
+        states["torques"] = actions
+
+        for feature in dataloader.X_features: # check batch size matches
+            assert states[feature].shape[0] == actions.shape[0]
+
+        gp_inputs = [states[feature]
+                     for feature in dataloader.X_features]
+
+        gp_inputs = torch.cat(gp_inputs, dim=1)
+
+        predictions = self.gp_model.predict(gp_inputs)
+
+        # extract and update state with each high-level feature from output
+        # target should be left unmodified, as it should not be in y_features
+        for feature in dataloader.y_features:
+
+            (start_index,
+             end_index) = \
+                dataloader.get_feature_indices(
+                    feature_names = dataloader.y_features,
+                    query_feature = feature)
+
+            states[feature] = predictions.mean[:, start_index : end_index]
+
+        return states
+
     def train(self,
               batch_size:    int   = 400,
               iterations:    int   = 1200,
-              learning_rate: float = 0.01,
+              learning_rate: float = 0.001,
               save_model_to: str   = None,
               ε:             float = 0.9,
               ε_decay:       float = 0.99,
@@ -545,81 +622,121 @@ class RlPolicy:
             self.add_to_replay_buffer(states      = states,
                                       next_states = next_states)
 
-            states  = next_states
+            states = next_states
 
-    def select_actions(self, network, states, ε = 0, quiet = False):
-        """
-        given a batch of states, output a batch of actions
+    def simulate_trajectory(self,
+                            start_state,
+                            target_location,
+                            iterations      = 100,
+                            online_learning = True):
 
-        currently alternates between exploiting & exploring with ε = 0.5
-        """
+        # TODO docstring
 
-        def print_value(title, tensor):
-            """print a tensor's value for debugging"""
+        def display_state(state):
 
-            print(f"{title}: {tensor.cpu().detach().numpy()}")
+            for feature in ("ee_location",
+                            "target",
+                            "velocities",
+                            "accelerations"):
 
-        controller_inputs = [states[feature]
-                             for feature
-                             in self.input_features]
+                scaler = feature if feature != "target" else "ee_location"
 
-        controller_inputs = torch.cat(controller_inputs, dim=1)
+                inverse_scaled_feature_data = \
+                    self.inverse_transform(scaler = scaler,
+                                           data   = state[feature])[0]
 
-        actions = network(controller_inputs)
+                inverse_scaled_feature_data = \
+                    inverse_scaled_feature_data.detach().cpu().numpy()
 
-        if ε > 0:
+                print(f"{feature:<14}: {inverse_scaled_feature_data}")
 
-            if random() <= (1 - ε):
+            print()
 
-                if quiet == False:
-                    print("exploiting...")
+        assert isinstance(target_location, torch.Tensor)
 
-            else:
+        if "target" not in start_state:
+            start_state["target"] = target_location
 
-                if quiet == False:
-                    print("exploring...")
+        else:
 
-                reparameterization_ε = 0.1 # TODO add argument, disambiguate
+            try:
+                assert torch.equal(target_location, start_state["target"])
 
-                # add Gaussian noise for exploration (reparameterization trick)
-                # https://sassafras13.github.io/ReparamTrick/
-                actions = (  actions
-                           + reparameterization_ε
-                           * torch.randn_like(actions)
-                           * actions.std())
+            except AssertionError:
+                raise ValueError("state dict already includes target, "
+                                 "but state['target'] != `target` argument.")
 
-        # for feature, value in states.items():
-            # print_value(title = feature, tensor = value)
+        initial_distance = \
+            torch.cdist(torch.unsqueeze(start_state["ee_location"], dim=0),
+                        torch.unsqueeze(target_location,            dim=0)
+                        ).item()
 
-        return actions
+        state = start_state
 
-    def predict_next_states(self, states, actions):
-        """
-        given a batch of states and a batch of actions,
-        return the batch of next states
-        """
+        display_state(state)
 
-        states["torques"] = actions
+        # TODO test without online_learning
 
-        for feature in dataloader.X_features: # check batch size matches
-            assert states[feature].shape[0] == actions.shape[0]
+        if online_learning:
+            optimizer = torch.optim.Adam(self.network.parameters(),
+                                         lr = 0.01) # TODO lr argument
 
-        gp_inputs = [states[feature]
-                     for feature in dataloader.X_features]
+        for iteration in range(iterations):
 
-        gp_inputs = torch.cat(gp_inputs, dim=1)
+            if online_learning:
+                optimizer.zero_grad()
 
-        predictions = self.gp_model.predict(gp_inputs)
+            action = self.select_actions(network = self.network,
+                                         states  = state,
+                                         ε       = 0)
 
-        # extract and update state with each high-level feature from output
-        for feature in dataloader.y_features:
+            next_state = self.predict_next_states(state, action)
 
-            (start_index,
-             end_index) = \
-                dataloader.get_feature_indices(
-                    feature_names = dataloader.y_features,
-                    query_feature = feature)
+            display_state(next_state)
 
-            states[feature] = predictions.mean[:, start_index : end_index]
+            distance = \
+                torch.cdist(torch.unsqueeze(start_state["ee_location"], dim=0),
+                            torch.unsqueeze(target_location,            dim=0)
+                            ).item()
 
-        return states
+            print("percent distance covered: "
+                  f"{(initial_distance - distance) / initial_distance:.1%}")
+
+            if online_learning:
+
+                reward = self.calculate_rewards(next_state)
+
+                loss = -reward.mean()
+
+                loss.backward()
+
+                optimizer.step()
+
+                # detach gradients to avoid accumulation from looping models
+                for feature in dataloader.y_features:
+                    next_state[feature] = next_state[feature].detach()
+
+            print(f"loss: {loss.item()}\n")
+
+            state = next_state
+
+            # TODO stop when "close enough" to goal
+
+    def simulate_random_trajectory(self,
+                                   iterations      = 100,
+                                   online_learning = True):
+
+        # TODO docstring
+
+        if online_learning:
+            self.network.train()
+        else:
+            self.network.eval()
+
+        state, _, _ = self.get_random_states(batch_size = 1)
+
+        target = state["target"]
+
+        self.simulate_trajectory(start_state     = state,
+                                 target_location = target,
+                                 online_learning = True)

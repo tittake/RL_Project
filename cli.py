@@ -144,7 +144,7 @@ def add_RL_training_parser_arguments(parser):
                         dest     = "learning_rate",
                         type     = float,
                         required = False,
-                        default  = 0.01)
+                        default  = 0.001)
 
 
 def train_RL(data_path:     str,
@@ -171,6 +171,64 @@ def train_RL(data_path:     str,
 
     # TODO what if user wants to test the model just trained without saving it?
 
+def add_RL_simulate_random_trajectory_arguments(parser):
+    """`RL simulate` arguments"""
+
+    parser.set_defaults(function=RL_simulate_random_trajectory)
+
+    parser.add_argument("-d",
+                        "--data_path",
+                        type     = str,
+                        required = True)
+
+    parser.add_argument("-g",
+                        "--GP_model_path",
+                        "--gp_model_path",
+                        dest     = "GP_model_path",
+                        type     = str,
+                        required = True)
+
+    parser.add_argument("-r",
+                        "--RL_model_path",
+                        "--rl_model_path",
+                        dest     = "RL_model_path",
+                        type     = str,
+                        required = True)
+
+    parser.add_argument("-i",
+                        "--iterations",
+                        dest     = "iterations",
+                        type     = int,
+                        required = False,
+                        default  = 100)
+
+    parser.add_argument("-o",
+                        "--online_learning",
+                        dest     = "online_learning",
+                        type     = bool,
+                        required = False,
+                        default  = False)
+
+def RL_simulate_random_trajectory(data_path:       str,
+                                  GP_model_path:   str,
+                                  RL_model_path:   str,
+                                  iterations:      int,
+                                  online_learning: bool):
+
+    """`RL simulate` behavior"""
+
+    gp_model = GpModel(data_path        = data_path,
+                       saved_model_path = GP_model_path)
+
+    rl_policy = RlPolicy(gp_model         = gp_model,
+                         data_path        = data_path,
+                         saved_model_path = RL_model_path)
+
+    rl_policy.simulate_random_trajectory(iterations      = iterations,
+                                         online_learning = online_learning)
+
+    # TODO what if user wants to test the model just trained without saving it?
+
 
 def main():
     """configure and run CLI parser"""
@@ -187,13 +245,20 @@ def main():
 
     GP_training_parser = GP_subparsers.add_parser("train")
     GP_testing_parser  = GP_subparsers.add_parser("test")
+
     RL_training_parser = RL_subparsers.add_parser("train")
+
+    RL_simulate_random_trajectory_parser = \
+        RL_subparsers.add_parser("simulate_random_trajectory")
 
     add_GP_training_parser_arguments(GP_training_parser)
 
     add_GP_testing_parser_arguments(GP_testing_parser)
 
     add_RL_training_parser_arguments(RL_training_parser)
+
+    add_RL_simulate_random_trajectory_arguments(
+        RL_simulate_random_trajectory_parser)
 
     arguments = arguments_parser.parse_args()
 
