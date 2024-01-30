@@ -1,6 +1,5 @@
 """module containing reinforcement learning policy class"""
 
-from copy import deepcopy
 import csv
 import json
 from math import inf, sqrt
@@ -10,18 +9,13 @@ from pathlib import Path
 from random import randint, random
 from typing import Literal
 
-import numpy
-import sklearn
-import time
 import torch
-from torch import unsqueeze
 from tqdm import tqdm
 
 import data.dataloader as dataloader
 from RL.DQN import DQN
 
 from GP.GpModel import GpModel
-import matplotlib.pyplot as plt
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -287,7 +281,7 @@ class RlPolicy:
 
                 sample_number = \
                     randint(a = 0,
-                            b = len(self.replay_buffer\
+                            b = len(self.replay_buffer
                                     [batch_number]["states"][first_feature]
                                     ) - 1)
 
@@ -301,12 +295,12 @@ class RlPolicy:
         for feature in ["target", *dataloader.y_features]:
 
             states[feature] = \
-                [self.replay_buffer\
+                [self.replay_buffer
                  [batch_number]["states"][feature][sample_number]
                  for batch_number, sample_number in indices]
 
             next_states[feature] = \
-                [self.replay_buffer\
+                [self.replay_buffer
                  [batch_number]["next_states"][feature][sample_number]
                  for batch_number, sample_number in indices]
 
@@ -491,12 +485,12 @@ class RlPolicy:
 
             if random() <= (1 - ε):
 
-                if quiet == False:
+                if quiet is False:
                     print("exploiting...")
 
             else:
 
-                if quiet == False:
+                if quiet is False:
                     print("exploring...")
 
                 reparameterization_gain = 0.1 # TODO add argument

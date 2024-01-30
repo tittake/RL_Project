@@ -171,6 +171,7 @@ def train_RL(data_path:     str,
 
     # TODO what if user wants to test the model just trained without saving it?
 
+
 def add_RL_simulate_random_trajectory_arguments(parser):
     """`RL simulate` arguments"""
 
@@ -208,6 +209,7 @@ def add_RL_simulate_random_trajectory_arguments(parser):
                         type     = bool,
                         required = False,
                         default  = False)
+
 
 def RL_simulate_random_trajectory(data_path:       str,
                                   GP_model_path:   str,
