@@ -14,7 +14,7 @@ import numpy
 import sklearn
 import time
 import torch
-from torch import cdist, unsqueeze
+from torch import unsqueeze
 from tqdm import tqdm
 
 import data.dataloader as dataloader
@@ -38,8 +38,8 @@ class RlPolicy:
 
         super().__init__()
 
-        self.gp_model      = gp_model
-        self.data_path     = data_path
+        self.gp_model  = gp_model
+        self.data_path = data_path
 
         self.state_feature_count  = state_feature_count
         self.control_output_count = control_output_count
@@ -81,6 +81,8 @@ class RlPolicy:
             scaler: the key of the scaler in self.scalers, e.g. "velocities"
             data:   the tensor to inverse transform
         """
+
+        data = data.clone()
 
         data -= torch.tensor(self.scalers[scaler].min_,
                              device = self.device,
@@ -323,10 +325,11 @@ class RlPolicy:
                                              data   = states["ee_location"])
 
         # vector from the predicted EE coordinates towards the goal
-        ideal_vector_to_goal = (  states["target"]
-                                - states["ee_location"])
+        ideal_vector_to_goal = targets - ee_location
 
-        # TODO calculate the dot product between this and acceleration
+        ideal_vector_to_goal = \
+            self.inverse_transform(scaler = "ee_location",
+                                   data   = ideal_vector_to_goal)
 
         error_metric = {}
 
@@ -351,15 +354,9 @@ class RlPolicy:
             # calculate the angle between the vectors
             error_metric[vector_metric] = torch.arccos(dot_product / norm)
 
-            # TODO double-check whether this works and is sane & needed
-            # compensate for angles > (1/2) * pi (they should be <= (1/2) pi)
-            error_metric[vector_metric] = (  error_metric[vector_metric]
-                                           % ((1/2) * torch.pi))
-
             # normalize to range (0, 1)
             error_metric[vector_metric] = \
-                torch.div(error_metric[vector_metric],
-                          ((1 / 2) * torch.pi))
+                (error_metric[vector_metric] / torch.pi)
 
         error_metric["euclidian_distance"] = \
             torch.norm(states["ee_location"] - states["target"], dim=1)
@@ -375,7 +372,7 @@ class RlPolicy:
                        for error in error_metric.values())
 
         for metric_name, metric in error_metric.items():
-          print(f"mean {metric_name} error: {metric.mean().item()}")
+            print(f"mean {metric_name} error: {metric.mean().item()}")
 
         return rewards
 
@@ -450,6 +447,7 @@ class RlPolicy:
                                              f"epsilon: {ε:.1%}")
 
                 loss.backward()
+
                 optimizer.step()
 
                 progress_bar.update()
@@ -539,6 +537,10 @@ class RlPolicy:
 
             print(f"loss: {loss.item()}\n")
 
+            loss.backward()
+
+            optimizer.step()
+
             # detach gradients to avoid accumulation from looping models
             for feature in dataloader.y_features:
                 next_states[feature] = next_states[feature].detach()
@@ -547,10 +549,6 @@ class RlPolicy:
                                       next_states = next_states)
 
             states  = next_states
-
-            loss.backward()
-
-            optimizer.step()
 
     def select_actions(self, network, states, ε = 0, quiet = False):
         """
