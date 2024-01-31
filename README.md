@@ -148,7 +148,7 @@ example:
     python cli.py rl train \
                      --data_path trajectories/10Hz/all_joints \
                      --gp_model_path trained_models/all_joints.pth \
-                     --save_model_to PATH trained_models/RL/rl_model.pth
+                     --save_model_to trained_models/RL/rl_model.pth
 
 #### simulate a random trajectory:
 
