@@ -1,0 +1,9 @@
+data_path: "trajectories/10Hz/all_joints"
+GP:
+  model_path: "trained_models/all_joints.pth"
+  iterations: 116
+RL:
+  train_fresh_GP: false
+  trials: 10
+  iterations: 1000
+  learning_rate: 0.1
