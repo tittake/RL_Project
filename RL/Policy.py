@@ -8,7 +8,7 @@ from os import listdir, mkdir
 from os.path import dirname, isdir, join
 from pathlib import Path
 from random import randint, random
-from typing import Literal
+from typing import Callable, Literal
 
 import torch
 from tqdm import tqdm
@@ -460,6 +460,8 @@ class RlPolicy:
 
                 progress_bar.update()
 
+        print()
+
     def select_actions(self, network, states, ε = 0, quiet = False):
         """
         given a batch of states, output a batch of actions
@@ -641,16 +643,23 @@ class RlPolicy:
 
             states = next_states
 
-    def simulate_trajectory(self,
-                            start_state,
-                            target_location,
-                            iterations      = 100,
-                            online_learning = True):
+    def simulate_trajectory(
+        self,
+        start_state:     dict,
+        target_location: dict,
+        iterations:      int                          = 100,
+        online_learning: bool                         = True,
+        callback:        Callable[[dict, None], None] = None):
 
         """
         simulate the trajectory from a given start state to a given target
         location, using the trained RL & GP models, optionally continuing
         training online
+
+        A callback function can optionally be passed as an argument. The
+        callback function should accept a single argument `state`, of type
+        dict. Each time the state is updated  with a new prediction from the
+        GP, it will be passed to the callback function.
         """
 
         def display_state(state):
@@ -694,6 +703,9 @@ class RlPolicy:
 
         state = start_state
 
+        if callback is not None:
+            callback(state = deepcopy(state))
+
         display_state(state)
 
         # TODO test without online_learning
@@ -730,6 +742,9 @@ class RlPolicy:
             print("percent distance covered: "
                   f"{(initial_distance - distance) / initial_distance:.1%}")
 
+            if callback is not None:
+                callback(state = deepcopy(next_state))
+
             if online_learning:
 
                 reward = self.calculate_rewards(next_state)
@@ -750,13 +765,19 @@ class RlPolicy:
 
             # TODO stop when "close enough" to goal
 
-    def simulate_random_trajectory(self,
-                                   iterations      = 100,
-                                   online_learning = True):
+    def simulate_random_trajectory(
+        self,
+        iterations:      int                          = 100,
+        online_learning: bool                         = True,
+        callback:        Callable[[dict, None], None] = None):
 
         """
         randomly sample a start state and target location from ground-truth
         data, then simulate the trajectory using the RL & GP models
+
+        A callback function can optionally be passed as an argument. All
+        arguments be passed to the more general `simulate_random_trajectory()`
+        method above, so see its docstring for details.
         """
 
         if online_learning:
