@@ -643,12 +643,13 @@ class RlPolicy:
 
             states = next_states
 
-    def simulate_trajectory(self,
-                            start_state:     dict,
-                            target_location: dict,
-                            iterations:      int            = 100,
-                            online_learning: bool           = True,
-                            callback:        Callable[dict] = None):
+    def simulate_trajectory(
+        self,
+        start_state:     dict,
+        target_location: dict,
+        iterations:      int                          = 100,
+        online_learning: bool                         = True,
+        callback:        Callable[[dict, None], None] = None):
 
         """
         simulate the trajectory from a given start state to a given target
@@ -764,10 +765,11 @@ class RlPolicy:
 
             # TODO stop when "close enough" to goal
 
-    def simulate_random_trajectory(self,
-                                   iterations:      int            = 100,
-                                   online_learning: bool           = True,
-                                   callback:        Callable[dict] = None):
+    def simulate_random_trajectory(
+        self,
+        iterations:      int                          = 100,
+        online_learning: bool                         = True,
+        callback:        Callable[[dict, None], None] = None):
 
         """
         randomly sample a start state and target location from ground-truth
