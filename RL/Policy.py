@@ -647,7 +647,7 @@ class RlPolicy:
                             start_state:     dict,
                             target_location: dict,
                             iterations:      int            = 100,
-                            online_learning: bool           = True
+                            online_learning: bool           = True,
                             callback:        Callable[dict] = None):
 
         """
@@ -701,6 +701,9 @@ class RlPolicy:
                         ).item()
 
         state = start_state
+
+        if callback is not None:
+            callback(state = deepcopy(state))
 
         display_state(state)
 
@@ -763,7 +766,7 @@ class RlPolicy:
 
     def simulate_random_trajectory(self,
                                    iterations:      int            = 100,
-                                   online_learning: bool           = True
+                                   online_learning: bool           = True,
                                    callback:        Callable[dict] = None):
 
         """
